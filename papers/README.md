@@ -203,6 +203,7 @@
 + [2008_finite_element_methods_for_linear_elasticity](2008_finite_element_methods_for_linear_elasticity.pdf)
     + a mathematically rigorous formulation of several weak form of linear elasticity
     + concise!
+        + various variational formulation
 
 + [2011_finite_element_analysis_for_linear_elastic_solids_based_on_subdivision_schemes](2011_finite_element_analysis_for_linear_elastic_solids_based_on_subdivision_schemes.pdf)
     + details on assembly stiffness `k` matrix, similar to CompFab A4

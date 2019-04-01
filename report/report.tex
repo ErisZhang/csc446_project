@@ -11,6 +11,8 @@
 \newcommand{\bepsilon}{\boldsymbol{\varepsilon}}
 \renewcommand{\epsilon}{\varepsilon}
 \renewcommand{\bf}{\mathbf{f}}
+\newcommand{\ta}{\tilde{a}}
+\renewcommand{\bphi}{\boldsymbol{\varphi}}
 
 \begin{document}
 
@@ -41,7 +43,7 @@ Continuum mechanics deals with behavior of material modeled as a continuous mass
     \]
     where
     \[
-        \sigma_{ij} = \lim_{dA_i} \dfrac{F_j}{dA_i}
+        \sigma_{ij} = \lim_{dA_i \to 0} \dfrac{F_j}{dA_i}
     \] 
     represents force applied in $j$-th coordinate axis over a differential plane orthogonal to $i$-th coordinate axis. 
     \item \bheading{strain} describes deformation by relative displacements, which can be represented as a symmetric second order tensor $\bepsilon$,
@@ -81,24 +83,19 @@ Here, we lay down simplifying assumptions for our problem.
 \begin{enumerate}
     \item \bheading{Analytic stress/strain} If we assume that stress and strain field is analytic in small neighborhood of a point, we can guarantee convergent Taylor series expansion, which leads to simplier formulation of differential equation governing materials' elastic behavior. This assumption, for example, helped with derivation of Green-Lagrangian strain tensor
     \[
-        \epsilon_{ij} = \p{
-            \frac{\partial u_i}{\partial x_j} + 
-            \frac{\partial u_j}{\partial x_i} -
-            \frac{\partial u_k}{\partial _i}\frac{\partial u_k}{\partial x_j}
-        }    
+        \epsilon_{ij} = \p{u_{i,j} + u_{j,i} - u_{k,i}u_{k,j}}    
     \]
     \item \bheading{Small deformations} Typically, elastic material exhibit a nonlinear relationship between stress and strain. However, if we assume for small deformation only, stress-strain is linear, hence the name \textit{linear} elasticity. We can employ Hooke's law to model the relationship between stress and strain.
     \[
         \bsigma = \bC : \bepsilon
     \]
     where $\bC$ is a fourth-order stiffness tensor.
-    \item \bheading{Isotropic homogeneous material} Typically, material exhibit direction or location specific behavior. If materials are characterized by properties independent of orientation and coordinate system, we can reduce the material stiffness matrix to depend on 2 material dependent constants,
+    \item \bheading{Isotropic homogeneous material} Typically, material exhibit direction or location specific behavior. If materials are characterized by properties independent of orientation and coordinate system, we can reduce the number of material-dependent constants to 2 (i.e. $\lambda,\mu$),
     \[
         \bsigma = \bC : \bepsilon
         \quad \quad \rightarrow \quad \quad
         \bsigma = 2\mu\bepsilon + \lambda \tr{\bepsilon} \bI
     \]
-    where $\lambda,\mu$ are Lame's first and second parameter.
     \item \bheading{Static equilibrium} We are only interested in modeling static objects. With this assumption, we obtain a simpler formula from Newton's second law on conservation of linear and angular momentum.
     \[
         \nabla\cdot\bsigma + \bf = \rho \ddot{\bu}
@@ -111,7 +108,7 @@ Here, we lay down simplifying assumptions for our problem.
 
 \section*{Differential Equations}
 
-From physical laws and simplifying assumptions, we can list a set of 15 partial differential equations in 15 unknowns, i.e. $\bsigma, \bepsilon, \bu$, for each point inside a solid material. We express the equations in tensor notations.
+From physical laws and simplifying assumptions, we can derive a set of equations governing linear elasticity with respect to the stress field $\bsigma$, the strain field $\bepsilon$, and the displacement field $\bu$. We express the equations in tensor notations.
 \begin{enumerate}
     \item \bheading{Equilibrium Equations} express equilibirum condition imposed to the stress field by Newton's second law
     \[
@@ -141,20 +138,65 @@ From physical laws and simplifying assumptions, we can list a set of 15 partial 
         \quad\quad\quad\quad
         \sigma_{ij} = 2\mu \epsilon_{ij} + \lambda \epsilon_{kk} \delta_{ij}
     \]
-    where $\lambda,\mu$ are Lame's first and second parameter are function of Poisson's ratio $\nu$ and Young's modulus $E$,
+    where $\lambda,\mu$ are Lam\'{e}'s first and second parameter can be written as material-specific constants - Poisson's ratio $\nu$ and Young's modulus $E$,
     \[
         \mu = \frac{E}{2(1+\nu)}
         \quad\quad\quad\quad
         \lambda = \frac{E\nu}{(1+\nu)(1-2\nu)}
     \]
 \end{enumerate}
-We can eliminate stress and strain in the problem and seek a set of equations where displacement is the primary unknown. We use this formulation as it is great for problems where displacements (and not tractions) are specified on the boundary.
+
+
+\section*{Boundary Value Problem}
+For our purposes, it is easier to eliminate stress and strain to seek a set of equations where the displacement field is the primary unknown. We can achieve this by writing the strain $\bsigma$ in the equilibrium equation as a function of displacement $\bu$ using the constitutive law and kinematics equations. In other words, we seek displacement field $\bu \in \mathring{\BH}$ satisfying
 \begin{align*}
-    (\lambda+\mu) \nabla \cdot(\nabla \bu) + \mu \nabla^2 \bu + \bf &= 0 \\
-    (\lambda+\mu)u_{j,ji} + \mu u_{i,jj} + f_i &= 0
+    -\nabla \cdot \p{\bC \bepsilon(\bu)}
+        &= \bf & \bx\in\Omega \\
+    \bu &= 0   &\bx\in\partial\Omega
+\end{align*}
+where $\Omega\in\R^3$ is a closed and bounded region occupied by a linear elastic solid, with boundary $\partial\Omega$. $\mathring{\BH} := \mathring{\BH}(\Omega,\R^3)$ is the first Sobolev space satisfying the zero boundary condition. $\bepsilon$ is a linear differential operator over the displacement $\bu$, while $\bC$ is a linear operator over the the strain $\bepsilon(\bu)$, which is positive definite for linear elastic isotropic material. It is easy to see that $\sL := -\nabla \cdot \p{\bC \bepsilon(\cdot)}$ is a linear differential operator. So we have,
+\begin{align*}
+    \sL \bu &= \bf  & \bx\in\Omega \\
+    \bu   &= 0    &\bx\in\partial\Omega
 \end{align*}
 
-\section*{Strong and Weak Form}
+
+\section*{Finite Element Formulation}
+It is conventional to use finite element method to solve linear elasticity equations for 3-dimensional objects with complex geometry. We will formulate the boundary value problem in both the weak and variational form. The two formulations are equivalent in our setup.
+
+\subsection*{Weak Form}
+The goal is to estimate $\bu$ in a finite dimensional function space $\mathring{\BH}_m$ spanned by a set of basis functions $\pc{\bv_1, \cdots, \bv_m} \subset \mathring{\BH}$. We can formulate linear elasticity weakly as
+\[
+    \int_{\Omega} \bC\bepsilon(\bu) : \bepsilon(\bv_k) d\bx
+    = 
+    \int_{\Omega} \bf \cdot \bv_k d\bx
+    \tag{$k=1,\cdots,m$}
+\]
+where the left hand side is obtained via Green's first identity assuming a pure displacement formulation with no traction force on the boundary. We can define a bilinear form $\ta(\cdot,\cdot)$
+\[
+    \ta(\bu,\bv) = \inner{\sL \bu}{\bv}
+        = \int_{\Omega} \bC \bepsilon(\bu) : \bepsilon(\bu) d\bx    
+\]
+where $\inner{\cdot}{\cdot}$ is $L^2$ norm over $\Omega$. We can rewrite the Galerkin's Equations as
+\[
+    \ta(\bu,\bv_k) = \inner{\bf}{\bv_k}
+    \tag{$k=1,\cdots,m$}
+\]
+\subsection*{Variational Form}
+We can show that $\sL$ is positive definite [insert proof here]. By theorem [cite textbook], $\sL \bu = \bf$ is the Euler-Lagrange equation of following variational problem
+\[
+    \sJ(\bv) := \ta(\bv,\bv) - 2\inner{\bf}{\bv}
+    \quad\quad\quad
+    \bv\in\BH
+\]
+where $\sJ: \BH\to \R$ is a functional. The theorem also guarantees the uniqueness and existence of solution for the boundary value problem. Therefore, we want to solve the following optimization problem
+\[
+    \min_{\bu\in \BH} \quad
+        \int_{\Omega} \bC \bepsilon(\bu) : \bepsilon(\bu) d\bx 
+      - 2\int_{\Omega} \bf \cdot\bu d\bx
+\]
+
+
 
 
 
