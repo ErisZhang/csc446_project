@@ -1,0 +1,161 @@
+\documentclass[11pt]{article}
+\input{\string~/.macros}
+\usepackage[a4paper, total={6in, 8in}, margin=1.5in]{geometry}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linktoc=all, linkcolor=blue}
+
+\newcommand{\heading}[1]{(#1)}
+\newcommand{\bheading}[1]{\textbf{(#1)}}
+
+\newcommand{\bsigma}{\boldsymbol{\sigma}}
+\newcommand{\bepsilon}{\boldsymbol{\varepsilon}}
+\renewcommand{\epsilon}{\varepsilon}
+\renewcommand{\bf}{\mathbf{f}}
+
+\begin{document}
+
+\section*{Abstract}
+
+We aim to determine failure cases, i.e. fractures, breakage, etc. for solid statues of arbitrary elastic material in real time. To solve this problem, we aim to perform linear elasticity simulation and determine yield stress for a solid geometry. To make the solution fast enough, we aim to use a combination of voxel grids and matrix-free iterative method to allow for parallelism. Briefly, we will
+\begin{enumerate}
+    \item provide background introduction and model assumptions
+    \item describe differential equations governing linear elasticity
+    \item discuss strong and weak solutions and clarify implementation strategies
+    \item explore tricks to make simulation faster
+\end{enumerate}
+
+
+\section*{Introduction \& Definitions}
+
+Continuum mechanics deals with behavior of material modeled as a continuous mass. The study of elastic material is a subset of continuum mechanics that models the ability of a material to resist influence and return to its original configuration when the influence is removed. The following definitions are important to elasticity theory and provide important background for rest of the report.
+
+\begin{enumerate}
+    \item \bheading{stress} describes internal force over a differential area at a point, which can be represented as a symmetric second order tensor $\bsigma$,
+    \[
+        \bsigma = 
+        \begin{bmatrix}
+            \sigma_{11} & \sigma_{12} & \sigma_{13} \\
+            \sigma_{21} & \sigma_{22} & \sigma_{23} \\
+            \sigma_{31} & \sigma_{32} & \sigma_{33} \\
+        \end{bmatrix}    
+    \]
+    where
+    \[
+        \sigma_{ij} = \lim_{dA_i} \dfrac{F_j}{dA_i}
+    \] 
+    represents force applied in $j$-th coordinate axis over a differential plane orthogonal to $i$-th coordinate axis. 
+    \item \bheading{strain} describes deformation by relative displacements, which can be represented as a symmetric second order tensor $\bepsilon$,
+    \[
+        \bepsilon = 
+        \begin{bmatrix}
+            \epsilon_{11} & \epsilon_{12} & \epsilon_{13} \\
+            \epsilon_{21} & \epsilon_{22} & \epsilon_{23} \\
+            \epsilon_{31} & \epsilon_{32} & \epsilon_{33} \\
+        \end{bmatrix}
+    \]
+    where $\epsilon_{ii}$ are axial strains and $\epsilon_{ij}$ where $i\neq j$ are shearing strains.
+    \item \bheading{displacement} describes how much a point moves from referenced to deformed configuration, which can be represented as component-wise displacement, $\bu$
+    \[
+        \bu = \p{u_1, u_2, u_3}
+    \]
+    \item \bheading{yield} a point on a stress-strain curve of a material that indicates the limit of elastic behavior. Material experiencing stress over the yield point will suffer from permanent deformations.
+\end{enumerate}
+
+
+\section*{Goal}
+
+Ultimately, we are interested in computing the stress field over all points within a solid geometry, from which we can deduce material yielding by comparing the effective stress $\epsilon_e$ with material-specific yield stress $\epsilon_y$. Simply, we use Von Mises' criterion to determine yielding, 
+\[
+    \epsilon_e = 1/\sqrt{2} \sqrt{
+        (\sigma_{p1} - \sigma_{p2})^2 
+        + (\sigma_{p2} - \sigma_{p3})^2 
+        + (\sigma_{p3} - \sigma_{p1})^2
+    } > \epsilon_y
+\]
+where $\sigma_{p1}, \sigma_{p2}, \sigma_{p3}$ are pinciple stresses, which are eignevalues of stress tensor $\bsigma$.
+
+
+\section*{Problem Assumptions}
+
+Here, we lay down simplifying assumptions for our problem.
+\begin{enumerate}
+    \item \bheading{Analytic stress/strain} If we assume that stress and strain field is analytic in small neighborhood of a point, we can guarantee convergent Taylor series expansion, which leads to simplier formulation of differential equation governing materials' elastic behavior. This assumption, for example, helped with derivation of Green-Lagrangian strain tensor
+    \[
+        \epsilon_{ij} = \p{
+            \frac{\partial u_i}{\partial x_j} + 
+            \frac{\partial u_j}{\partial x_i} -
+            \frac{\partial u_k}{\partial _i}\frac{\partial u_k}{\partial x_j}
+        }    
+    \]
+    \item \bheading{Small deformations} Typically, elastic material exhibit a nonlinear relationship between stress and strain. However, if we assume for small deformation only, stress-strain is linear, hence the name \textit{linear} elasticity. We can employ Hooke's law to model the relationship between stress and strain.
+    \[
+        \bsigma = \bC : \bepsilon
+    \]
+    where $\bC$ is a fourth-order stiffness tensor.
+    \item \bheading{Isotropic homogeneous material} Typically, material exhibit direction or location specific behavior. If materials are characterized by properties independent of orientation and coordinate system, we can reduce the material stiffness matrix to depend on 2 material dependent constants,
+    \[
+        \bsigma = \bC : \bepsilon
+        \quad \quad \rightarrow \quad \quad
+        \bsigma = 2\mu\bepsilon + \lambda \tr{\bepsilon} \bI
+    \]
+    where $\lambda,\mu$ are Lame's first and second parameter.
+    \item \bheading{Static equilibrium} We are only interested in modeling static objects. With this assumption, we obtain a simpler formula from Newton's second law on conservation of linear and angular momentum.
+    \[
+        \nabla\cdot\bsigma + \bf = \rho \ddot{\bu}
+        \quad \quad \rightarrow \quad \quad
+        \nabla\cdot\bsigma + \bf = 0
+    \]
+    where $\bf$ are body forces, and $\rho$ is density of the material.
+\end{enumerate}
+
+
+\section*{Differential Equations}
+
+From physical laws and simplifying assumptions, we can list a set of 15 partial differential equations in 15 unknowns, i.e. $\bsigma, \bepsilon, \bu$, for each point inside a solid material. We express the equations in tensor notations.
+\begin{enumerate}
+    \item \bheading{Equilibrium Equations} express equilibirum condition imposed to the stress field by Newton's second law
+    \[
+        \nabla\cdot\bsigma + \bf = 0
+        \quad\quad\quad\quad
+        \sigma_{ji,j} + f_i = 0
+    \]
+    \item \bheading{Kinematics Equations} express deformation with respect to displacement without reference to forces that created them. 
+    \[
+        \bepsilon = \dfrac{1}{2} \p{
+            \nabla \bu + (\nabla\bu)^T
+        }
+        \quad\quad\quad\quad
+        \epsilon_{ij} = 
+            \frac{1}{2} \p{
+                \frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i}}
+    \]
+    \item \bheading{Constitutive Law} describes behavior of material under stress. We approximate behavior of linear elastic material with Hooke's Law
+    \[
+        \bsigma = \bC : \bepsilon
+        \quad\quad\quad\quad
+        \sigma_{ij} = C_{ijkl} \epsilon_{kl}
+    \]
+    where $\bC$ is a 4-th order stiffness tensor encoding material properties. Specifically, under the assumption of isotropic material, the relationship is simplified to 
+    \[
+        \bsigma = 2\mu\bepsilon + \lambda \tr{\bepsilon} \bI
+        \quad\quad\quad\quad
+        \sigma_{ij} = 2\mu \epsilon_{ij} + \lambda \epsilon_{kk} \delta_{ij}
+    \]
+    where $\lambda,\mu$ are Lame's first and second parameter are function of Poisson's ratio $\nu$ and Young's modulus $E$,
+    \[
+        \mu = \frac{E}{2(1+\nu)}
+        \quad\quad\quad\quad
+        \lambda = \frac{E\nu}{(1+\nu)(1-2\nu)}
+    \]
+\end{enumerate}
+We can eliminate stress and strain in the problem and seek a set of equations where displacement is the primary unknown. We use this formulation as it is great for problems where displacements (and not tractions) are specified on the boundary.
+\begin{align*}
+    (\lambda+\mu) \nabla \cdot(\nabla \bu) + \mu \nabla^2 \bu + \bf &= 0 \\
+    (\lambda+\mu)u_{j,ji} + \mu u_{i,jj} + f_i &= 0
+\end{align*}
+
+\section*{Strong and Weak Form}
+
+
+
+\end{document}
