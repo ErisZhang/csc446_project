@@ -1,4 +1,4 @@
-function [U,Ud,data] = linear_elasticity_static(V,F,b,varargin)
+function [U,Ud,data] = linelas2d_gptoolbox(V,F,b,bc,varargin)
   % LINEAR_ELASTICITY Compute the deformation of a 2D solid object according to
   % a linear model of elasticity, assuming a linear isotropic material.
   % 
@@ -9,6 +9,7 @@ function [U,Ud,data] = linear_elasticity_static(V,F,b,varargin)
   %   V  #V by 2 list of vertex positions
   %   F  #F by 3 list of triangle element indices into V
   %   b  #b list of indices into V of fixed vertices
+  %   bc #bc by 2 list of fixed vertex positions
   %   Optional:
   %     'Lambda'  followed by first Lamé parameter {1.7423333}, scalar
   %       (homogeneous) or #F by 1 list of per-element values
@@ -34,7 +35,6 @@ function [U,Ud,data] = linear_elasticity_static(V,F,b,varargin)
   %     data.C  #F*3 by #F*3 sparse constituitive model matrix 
   %     data.mqwf  precomputation for implicit solve (from min_quad_with_fixed)
   %     data.solve  function handle for conducting implicit step
-  %     data.VM #F by 1 list of von Mises stresses at each element
   % 
   % Example:
   %   % Fit to half the unit square
@@ -65,8 +65,8 @@ function [U,Ud,data] = linear_elasticity_static(V,F,b,varargin)
   young = [];
   nu = [];
   U0 = zeros(size(V));
+  Ud0 = zeros(size(V));
   fext = zeros(size(V));
-  
   %% Parameters so that off-diagonals _should_ be zero
   %lambda = 1;
   %mu = -2*lambda;
@@ -89,7 +89,9 @@ function [U,Ud,data] = linear_elasticity_static(V,F,b,varargin)
     v=v+1;
   end
 
+  first_solve = false;
   if isempty(data)
+    first_solve = true;
     tic;
     data.dt = dt;
     assert( ...
@@ -203,8 +205,8 @@ function [U,Ud,data] = linear_elasticity_static(V,F,b,varargin)
     data.A = blkdiag(A,A,A);
     data.K = D * data.A * data.C * data.strain;
 
-    %data.M = massmatrix(V,F);
-    %data.M = repdiag(data.M,size(V,2));
+    data.M = massmatrix(V,F);
+    data.M = repdiag(data.M,size(V,2));
 
     % ∇⋅σ + F = ü
     % Ku₂ + MF = M(u₂-2u₁+u₀)/dt²
@@ -217,8 +219,7 @@ function [U,Ud,data] = linear_elasticity_static(V,F,b,varargin)
     % dt*ud₀ = u₁-u₀
     % (M-dt²K)u₂  = M*(dt²F + u₁ + u₁-u₀)
     % (M-dt²K)u₂  = M*(dt²F + u₁ + dt*ud₀)
-    %A = data.M+data.dt^2*data.K;
-    
+    A = data.M+data.dt^2*data.K;
     % ud = (u - u0)/dt
     % udd = ((u - u0)-(u0-um1)/dt²
     % udd = (u - 2u0 +um1)/dt²
@@ -236,49 +237,17 @@ function [U,Ud,data] = linear_elasticity_static(V,F,b,varargin)
 
 
   end
-  
-  %%
-  q = sum(~b);
-  
-  % S here is a selection matrix
-  S = sparse(1:q,find(~b),ones(size(1:q)),q,size(V,1));
-  S = blkdiag(S,S);
-
-  % Ku + f = 0
-  % Ku = f
-  % u = K \ f
-  U = S*data.K*S' \ S*fext(:);
-  U = S'*U;
-  U = reshape(U,size(V,1),2);
-  U = U.*100;
-  Ud = (U-U0);
-  
-  % ?vm = sqrt(?1� - ?1?2 + ?2�)
-  % where ?1 and ?2 are principal stresses in the plane
-  % strain is unitless, because it's m/m
-  strain = data.strain * [U(:,1); U(:,2)];
-  % stress is in Pa
-  stress = data.C * strain;
-  num_f = size(F,1);
-  stress = reshape(stress,num_f,3);
-  s1 = stress(:,1);
-  s2 = stress(:,2);
-  s3 = stress(:,3);
-  % get principal stresses
-  el_stress1 = [s1 s3];
-  el_stress2 = [s3 s2];
-  % 2#F by 2 matrix of 2x2 element-wise stress tensors
-  element_stress = reshape([el_stress1(:) el_stress2(:)]',...
-    size(el_stress1,1)+size(el_stress2,1), []);
-
-  cell_stress = mat2cell(element_stress,ones(num_f,1)*2);
-  eigenvals = cellfun(@eig,cell_stress,'UniformOutput',false);
-  eigenvals_t = cellfun(@transpose,eigenvals,'UniformOutput',false);
-  principal_stress = cell2mat(eigenvals_t);
-  
-  % calculate von mises stress
-  sigma1 = principal_stress(:,1);
-  sigma2 = principal_stress(:,2);
-  data.VM = sqrt(sigma1.^2 - sigma1.*sigma2 + sigma2.^2);
+  B = data.M*(data.dt^2*fext(:) + U0(:) + data.dt*Ud0(:));
+  if first_solve
+    % Fix each coordinate
+    bb = reshape(bsxfun(@plus,reshape(b,[],1),(0:size(V,2)-1)*size(V,1)),1,[]);
+    % solve once to set data.mqwf
+    [U,data.mqwf] = min_quad_with_fixed(A,-2*B,bb,bc(:));
+    data.solve  = @(B,bc) min_quad_with_fixed(A,-2*B,bb,bc(:),[],[],data.mqwf);
+  else
+    U = data.solve(B,bc(:));
+  end
+  U = reshape(U,size(V));
+  Ud = (U-U0)/data.dt;
 
 end

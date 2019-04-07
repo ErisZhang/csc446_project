@@ -2,6 +2,7 @@
 %   reference: https://www.cambro.umu.se/access/content/group/69cbe5bd-67a8-41d8-9bc0-be47f2291b61/B5.pdf
 %   requires: PDe toolbox
 clear all;
+set_project_paths();
 
 model = createpde(1);
 geometryFromEdges(model,@squareg); % dim [-1,1] x [-1,1]
@@ -13,6 +14,11 @@ t = mesh.Elements;
 
 [K,F]=assemble(p,[],t);
 
+% approximately symmetric & 
+%       positive definite
+assert(issymmetric_approx(K, 1e-3) == true);
+assert(ispd(K) == true);
+
 % enforce dirichlet boundary by adding large number to `K_ii`
 for i = 1:size(p,2)
     x = p(1,i); y = p(2,i);
@@ -21,7 +27,6 @@ for i = 1:size(p,2)
         K(2*i,2*i) = 1.e+6;
     end
 end
-
 
 u = K \ F;
 deformation.ux = u(1:2:end);

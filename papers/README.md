@@ -59,6 +59,7 @@
 
 + [me582_ch3_fea_on_thermofluids](me582_ch3_fea_on_thermofluids.pdf)
 
+
 ## Softwares
 
 
@@ -81,9 +82,16 @@
 + [computational fabrication simulation slides](compfab_05_simulation_ii.pdf)
     + pretty helpful on going from energy -> nodal displacement formulation for element-wise stiffness `K_e`
 
-+ [vectorized_matlab_codes_for_linear_2d_elasticity](vectorized_matlab_codes_for_linear_2d_elasticity.pdf)
++ [2002_matlab_implementation_of_the_finite_element_method_in_elasticity](2002_matlab_implementation_of_the_finite_element_method_in_elasticity.pdf)
+    + 2d linear elasticity in matlab
+    + non-vectorized, but simple to understand
+    + might be helpful to use the terminologies for writing the report
+
++ [2007_vectorized_matlab_codes_for_linear_2d_elasticity](2007_vectorized_matlab_codes_for_linear_2d_elasticity.pdf)
     + 2d linear elasticity in matlab 
-    + referred to by https://github.com/alecjacobson/gptoolbox/blob/master/mesh/linear_elasticity.m
+        + gptoolbox's `linear_elasticity` based off of this
+
+
 
 ## FEM methods for linear elasticity
 
