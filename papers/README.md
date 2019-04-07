@@ -86,6 +86,7 @@
     + 2d linear elasticity in matlab
     + non-vectorized, but simple to understand
     + might be helpful to use the terminologies for writing the report
+    + has 3d impl for tetrahedral elements
 
 + [2007_vectorized_matlab_codes_for_linear_2d_elasticity](2007_vectorized_matlab_codes_for_linear_2d_elasticity.pdf)
     + 2d linear elasticity in matlab 
