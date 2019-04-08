@@ -2,28 +2,49 @@ function tests = test_isspd
     tests = functiontests(localfunctions);
 end
 
-function test_eye(t)
+function test_isspd_eye(t)
     A = eye(2);
     verifyEqual(t,isspd(A),true)
 end
 
-function test_real(t)
+function test_isspd_real(t)
     A = [2 -1 0; -1 2 -1; 0 -1 2];
-    verifyEqual(t, isspd(A), true);
+    verifyEqual(t, true,isspd(A));
 end
 
-function test_diagonally_dominant(t)
+function test_isspd_diagonally_dominant(t)
     v = zeros(10,1);
     B = [v-1, v+4,v-1];
     d = [-1,0,1];
     S = spdiags(B,d,10,10);
-    verifyEqual(t, isspd(full(S)), true);
+    verifyEqual(t, true, isspd(full(S)));
 end
 
-function test_not_diagonally_dominant(t)
+function test_isspd_not_diagonally_dominant(t)
     v = zeros(10,1);
     B = [v+2,v+2,v+2];
     d = [-1,0,1];
     S = spdiags(B,d,10,10);
-    verifyEqual(t, isspd(full(S)), false);
+    verifyEqual(t, false, isspd(full(S)));
 end
+
+function test_isdiagonallydonimantrow_true(t)
+    A = [
+        -2 1 -0.5
+        1 2 -0.9
+        0 0 1
+    ];
+    [b,l]=isdiagdominbyrow(A);
+    verifyEqual(t,true,b);
+end
+
+function test_isdiagonallydonimantrow_false(t)
+    A = [
+        -1.5 1 -0.5
+        1 2 -0.9
+        0 0 1
+    ];
+    [b,l]=isdiagdominbyrow(A);
+    verifyEqual(t,false,b);
+end
+

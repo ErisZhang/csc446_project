@@ -68,15 +68,15 @@ Continuum mechanics deals with behavior of material modeled as a continuous mass
 
 \section*{Goal}
 
-Ultimately, we are interested in computing the stress field over all points within a solid geometry, from which we can deduce material yielding by comparing the effective stress $\epsilon_e$ with material-specific yield stress $\epsilon_y$. Simply, we use Von Mises' criterion to determine yielding, 
+Ultimately, we are interested in computing the stress field over all points within a solid geometry, from which we can deduce material yielding by comparing the effective stress $\sigma_e$ with material-specific yield stress $\sigma_y$. Simply, we use Von Mises' criterion to determine yielding, 
 \[
-    \epsilon_e = 1/\sqrt{2} \sqrt{
-        (\sigma_{p1} - \sigma_{p2})^2 
-        + (\sigma_{p2} - \sigma_{p3})^2 
-        + (\sigma_{p3} - \sigma_{p1})^2
-    } > \epsilon_y
+    \sigma_e = \frac{1}{\sqrt{2}}\sqrt{
+        (\sigma_{11} - \sigma_{22})^2 
+        + (\sigma_{22} - \sigma_{33})^2 
+        + (\sigma_{33} - \sigma_{11})^2
+        + 6(\sigma_{23}^2 + \sigma_{31}^2 + \sigma_{12}^2)
+    } > \sigma_y
 \]
-where $\sigma_{p1}, \sigma_{p2}, \sigma_{p3}$ are pinciple stresses, which are eignevalues of stress tensor $\bsigma$.
 
 
 \section*{Problem Assumptions}

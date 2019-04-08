@@ -9,6 +9,7 @@ function set_project_paths()
     addpath('.');
     addpath('tests');
     addpath('matrix');
+    addpath('mesh');
     addpath('linelas');
     
 end

@@ -1,6 +1,17 @@
 
 
 
+## Problems 
+
+
++ global stiffness `K` is neither diagonally dominant nor has a spectral radius of <1 ...
++ how to do gaussian quadrature for matrix integrand?
++ how to correctly enforce dirichlet boundary 
+    + set large value to `K_ii` for vertex `i` on boundary
+    + set `K_ii` to 1 and `b_i` to 0 for  `i` on boundary, also removes entries `K_{ij},K_{ji}` for all `j`
+    + lagrange multiplier
+
+
 ## Meetings 
 
 

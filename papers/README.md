@@ -1,4 +1,28 @@
 
+### todo
+
+1. c++ impl 
+    + minimize allocation, i.e. B matrix
+    + solver
+        + `ldlt` -> `llt` (stable on positive definite matrix) 
+        + set iteration number to less, monitor residue ...
+
+
+## iterative methods 
+
+
+
+
+
+## Gradient estimation on discrete mesh 
+
++ [2018_gradient_field_estimation_on_triangle_meshes](2018_gradient_field_estimation_on_triangle_meshes.pdf)
+    + estimate the gradient operator for discrete mesh,
+    + reference for 
+        + https://github.com/libigl/libigl/blob/508cb9940f4d1e8e54137d5afe2fd2eb9c4dc672/include/igl/grad.h
+        + https://github.com/alecjacobson/gptoolbox/blob/96783f4e17a3e8c26a9480c31dbcdafab5629afb/mesh/grad.m
+
+
 ## Wiki
 
 + constitutive equation
@@ -70,6 +94,8 @@
 
 ## computer implementation for fem 
 
++ [libigl tutorial on laplace equation](https://libigl.github.io/tutorial/#laplace-equation)
+    + min quad with fixed has details on usage of lagrange multiplier in case of linear constraints on `z`
 
 + [15_linear_tetrahedron](15_linear_tetrahedron.pdf)
     + formulation of fem on tetrahedron with linear basis function
