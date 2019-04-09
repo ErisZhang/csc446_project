@@ -24,11 +24,11 @@ u = K\f;
 % some hand-tweaking to get color right
 VMC = VM;
 cap = 0.75*max(VM);
-% for i = 1:size(VM,1)
-%     if VMC(i) > cap;
-%         VMC(i) = cap;
-%     end
-% end
+for i = 1:size(VM,1)
+    if VMC(i) > cap;
+        VMC(i) = cap;
+    end
+end
 
 options.face_vertex_color = VMC;
 plot_mesh(V,F,options);

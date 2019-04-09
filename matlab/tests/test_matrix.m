@@ -1,4 +1,4 @@
-function tests = test_isspd
+function tests = test_matrix
     tests = functiontests(localfunctions);
 end
 

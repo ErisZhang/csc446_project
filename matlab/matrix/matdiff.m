@@ -1,4 +1,4 @@
-% find index and corresponding elements that are
+% find index and corresponding values that are
 %       different when comparing `A` and `B`
 %       up to tolerence `tol`
 function IJVV = matdiff(A,B,tol)

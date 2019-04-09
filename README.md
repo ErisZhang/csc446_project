@@ -11,6 +11,9 @@
     + set `K_ii` to 1 and `b_i` to 0 for  `i` on boundary, also removes entries `K_{ij},K_{ji}` for all `j`
     + lagrange multiplier
     + projection matrix to contain only unconstrained unknowns
++ convergence speed is slow for classical iterative methods
+    + slow for large `A`
+        + e^k <= \rho(A) ~ 1 - c/d^2 (nearly 1 for large d) for some constant `c` and `d` is dimension of matrix `A`
 
 
 ## Meetings 
