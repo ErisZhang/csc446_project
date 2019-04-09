@@ -10,6 +10,7 @@
     + set large value to `K_ii` for vertex `i` on boundary
     + set `K_ii` to 1 and `b_i` to 0 for  `i` on boundary, also removes entries `K_{ij},K_{ji}` for all `j`
     + lagrange multiplier
+    + projection matrix to contain only unconstrained unknowns
 
 
 ## Meetings 
@@ -79,3 +80,48 @@
     + with preconditioner: sqrt(kappa(M-1 A))
     + monitor residule `Ae = r`, computable with `r=Ax-b`
     + need to find softwares ...
+
+
+
+
+### Junk
+
+
+```
+% per element stress field
+se = zeros(12,1);
+straine = zeros(size(Tet,1),6);
+NV = zeros(size(V,1),1);    % #Vx1 volume of sum of neighboring tets
+
+for i = 1:size(Tet,1)
+    B = squeeze(Bs(i,:,:));
+    Teti = Tet(i,:);
+    ij2p(1:3:end) = 3*Teti-2;
+    ij2p(2:3:end) = 3*Teti-1;
+    ij2p(3:3:end) = 3*Teti;
+    straine(i,:) = B*u(ij2p);
+    NV(Teti) = NV(Teti) + Vs(i);
+end
+
+% per vertex strain/stress
+strain = zeros(size(V,1),6);
+stress = zeros(size(V,1),6);
+
+for i =1:size(Tet,1)
+    Teti = Tet(i,:);
+    strain(Teti,:) = strain(Teti,:) + (1./NV(Teti))*(Vs(i).*straine(i,:));
+end
+
+for j = 1:size(V,1)
+    stress(j,:) = (C*strain(j,:)')';
+end
+
+% von mises
+se = zeros(6,1);
+VM = zeros(size(V,1),1);
+for j = 1:size(V,1)
+    se = stress(j,:);
+    VM(j) = (1./sqrt(2))*sqrt((se(1)-se(2))^2 + (se(2)-se(3))^2 + ...
+        (se(3)-se(1))^2 + 6*(se(4)^2+se(5)^2+se(6)^2));
+end
+```

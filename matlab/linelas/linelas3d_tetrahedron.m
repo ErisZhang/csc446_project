@@ -7,16 +7,22 @@
 % Inputs:
 %       V   #Vx2
 %       T   #Tetx3
-%       b   #bx1    boundary index into V
+%       b   #bx1    boundary value index into K,f,u
+%                       i.e. zero booundary for 1 vertex equates 3 indices
+%       load 3x1    body force in {x,y,z} direction
 % Outputs:
-%       U           #Vx3 list of vertex displacements
-%       strain      #Vx6 stress field
-%       stress      #Vx6 strain field     
-function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b)
+%       U           #Vx3    list of vertex displacements
+%       K           #V*3 x #Vx3     sparse lhs
+%       f           #V*3 x 1        dense rhs
+%       strain      #Tetx6  stress field
+%       stress      #Tetx6  strain field
+%       VM          #Vx1    von mises stress field
+function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b,load)
     assert(size(V,2) == 3,'Only 3D meshes are supported');
 
-    young = 5e5;    % young modulus
-    mu = 0.45;   % poisson ratio
+    % silicone rubber ...
+    young = 1.45e5;  % young modulus
+    mu = 0.45;       % poisson ratio
 
     C = [
         (1-mu) mu mu 0 0 0
@@ -26,8 +32,6 @@ function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b)
         0 0 0 0 0.5*(1-2*mu) 0
         0 0 0 0 0 0.5*(1-2*mu)
     ]*(young/(1+mu)/(1-2*mu));
-
-    load = [0; -100; 0];
 
     dim = size(V,2);
     dof = size(V,1)*dim;
@@ -109,16 +113,11 @@ function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b)
     end
     toc;    % 68s
 
-    % % % tested once \checkmark
+    % tested once \checkmark
     % assert(issymmetric_approx(K, 1e-3) == true);
     % assert(ispd(K) == true);
 
-    % enforce dirichlet boundary
-    for i = 1:size(b,1)
-        K(3*i-2,3*i-2) = 1.e+6;
-        K(3*i-1,3*i-1) = 1.e+6;
-        K(3*i,3*i) = 1.e+6;
-    end
+    [K,f] = dirichlet_zero_boundary(K,f,b);
 
     tic;
     u = K \ f;
@@ -129,43 +128,16 @@ function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b)
     U(:,2) = u(2:3:end);
     U(:,3) = u(3:3:end);
 
-    tic;
+    [strain,stress,vm]=per_element_fields(Tet,C,Bs,u);
 
-    % per element stress field
-    se = zeros(12,1);
-    straine = zeros(size(Tet,1),6);
-    NV = zeros(size(V,1),1);    % #Vx1 volume of sum of neighboring tets
-    
-    for i = 1:size(Tet,1)
-        B = squeeze(Bs(i,:,:));
-        Teti = Tet(i,:);
-        ij2p(1:3:end) = 3*Teti-2;
-        ij2p(2:3:end) = 3*Teti-1;
-        ij2p(3:3:end) = 3*Teti;
-        straine(i,:) = B*u(ij2p);
-        NV(Teti) = NV(Teti) + Vs(i);
+    N = zeros(size(V,1),1);
+    for i=1:size(Tet,1)
+        N(Tet(i,:)) = N(Tet(i,:)) + 1;
     end
 
-    % per vertex strain/stress
-    strain = zeros(size(V,1),6);
-    stress = zeros(size(V,1),6);
-
-    for i =1:size(Tet,1)
-        Teti = Tet(i,:);
-        strain(Teti,:) = strain(Teti,:) + (1./NV(Teti))*(Vs(i).*straine(i,:));
-    end
-
-    for j = 1:size(V,1)
-        stress(j,:) = (C*strain(j,:)')';
-    end
-
-    % von mises
-    se = zeros(6,1);
     VM = zeros(size(V,1),1);
-    for j = 1:size(V,1)
-        se = stress(j,:);
-        VM(j) = (1./sqrt(2))*sqrt((se(1)-se(2))^2 + (se(2)-se(3))^2 + ...
-            (se(3)-se(1))^2 + 6*(se(4)^2+se(5)^2+se(6)^2));
+    for i=1:size(Tet,1)
+        VM(Tet(i,:),1) = VM(Tet(i,:),1) + vm(i)./N(Tet(i,:),1);
     end
-    toc;
 end
+

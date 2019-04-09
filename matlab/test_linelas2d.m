@@ -21,7 +21,9 @@ t = tsurf(F,V+U);
 axis equal;
 axis manual;
 while true
-    [U,Ud] = linelas2d_gptoolbox(V,F,[],[],'U0',U,'Ud0',Ud);
+    %[U,Ud] = linelas2d_gptoolbox(V,F,[],[],'U0',U,'Ud0',Ud);
+    [U,Ud] = linelas2d_gptoolbox_prev(V,F,[],'U0',U,'Ud0',Ud);
+
     t.Vertices = V+U;
     drawnow;
 end

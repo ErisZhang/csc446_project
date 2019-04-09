@@ -84,6 +84,13 @@
 + [me582_ch3_fea_on_thermofluids](me582_ch3_fea_on_thermofluids.pdf)
 
 
+
++ how to apply dirichlet boundary constraints to global stiffness matrix
+    + http://podgorskiy.com/spblog/304/writing-a-fem-solver-in-less-the-180-lines-of-code
+    + http://solidmechanics.org/text/Chapter7_2/Chapter7_2.htm
+    
+
+
 ## Softwares
 
 
@@ -118,6 +125,14 @@
     + 2d linear elasticity in matlab 
         + gptoolbox's `linear_elasticity` based off of this
 
+
++ [2010_cuda_for_realtime_multigrid_finite_element_simulation_of_soft_tissue_deformations](2010_cuda_for_realtime_multigrid_finite_element_simulation_of_soft_tissue_deformations.pdf)
+    + cuda implementation 
+    + realtime performance for linear elasticity
+
++ [2011_a_realtime_multigrid_finite_hexahedra_method_for_elasticity_simulation_using_CUDA](2011_a_realtime_multigrid_finite_hexahedra_method_for_elasticity_simulation_using_CUDA.pdf)
+    + cuda impl for hexa-hedral element
+    + matrix-free
 
 
 ## FEM methods for linear elasticity
