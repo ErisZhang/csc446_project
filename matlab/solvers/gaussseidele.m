@@ -27,7 +27,6 @@ function x = gaussseidele(A,b,x0,max_iter,tol)
             return;
         end
     end
-    warning('gauss-seidel iteration did not converge');
 end
 
 

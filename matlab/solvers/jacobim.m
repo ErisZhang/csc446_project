@@ -31,5 +31,4 @@ function x = jacobim(A,b,x0,max_iter,tol)
             return;
         end
     end
-    warning('jacobi iteration did not converge');
 end
