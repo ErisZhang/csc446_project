@@ -17,17 +17,19 @@ function x = jacobim(A,b,x0,max_iter,tol)
     D = diag(A);
     R = diag(D) - A;
 
-    Dinv = diag(D.^-1);
-    H = Dinv*R;
-    v = Dinv*b;
+    Dinv = D.^-1;
+    H = diag(Dinv)*R;
+    v = diag(Dinv)*b;
 
+    r  = zeros(size(x0));
     x  = x0;
     xp = x0;
 
     for i = 1:max_iter
         xp = x;
         x = H*x + v;
-        if norm(x-xp,inf) < tol
+        r = (x-xp).*Dinv;
+        if norm(r,inf) <= tol
             return;
         end
     end

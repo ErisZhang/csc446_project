@@ -11,6 +11,7 @@ function x = jacobie(A,b,x0,max_iter,tol)
     D = diag(A);
     Dinv = D.^-1;
 
+    r  = zeros(size(x0));
     x  = x0;
     xp = x0;
 
@@ -21,7 +22,9 @@ function x = jacobie(A,b,x0,max_iter,tol)
             x(i) = Dinv(i) * ( -A(i,:)*xp + A(i,i)*xp(i) + b(i) );
         end
 
-        if norm(x-xp,inf) < tol
+        r = (x-xp).*Dinv;
+
+        if norm(r,inf) <= tol
             return;
         end
     end

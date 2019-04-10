@@ -1,7 +1,7 @@
 % if matrix is diagonally dominant by row
 function [b,l] = isdiagdominbyrow(A)
     if issparse(A)
-        assert(false)
+        assert(true)
     else
         absA = abs(A);
         l = 2*diag(absA) > sum(absA,2);

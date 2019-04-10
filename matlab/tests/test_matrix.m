@@ -48,3 +48,13 @@ function test_isdiagonallydonimantrow_false(t)
     verifyEqual(t,false,b);
 end
 
+function test_nnz_indices_byrow(t)
+    n = 10;
+    S = sprand(n,n,n/30);
+    indices = nnz_indices_byrow(S);
+    for i = size(indices,1)
+        for j = size(indices{i},2)
+            verifyTrue(t, S(i,indices{i}(j)) ~= 0);
+        end
+    end
+end
