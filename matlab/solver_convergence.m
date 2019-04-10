@@ -52,26 +52,3 @@ noise = rand.*residuals(5,:)*0.1;
 plot(iters, residuals(5,:) + noise);
 legend('jacobim', 'jacobie', 'omega-jacobi', 'gaussseidele', 'gaussseidels');
 hold off;
-
-% check speed
-n = 200;
-max_iters = 30;
-x0 = zeros(n,1);
-reps = 3;
-ts = zeros(size(fs,1),reps);
-for j = 1:reps
-    A = rand(n,n)+n*eye(n);
-    b = rand(n,1);
-    for i =1:size(fs,1)
-        tic;
-        fs{i}(A,b,x0,max_iters,tol);
-        ts(i,j) = toc;
-    end
-end
-
-sum(ts,2)./max_iters
-%
-% time(s)/iteration ( n = 200 )
-% 0.000146            jacobim
-% 0.00025663          jacobie
-% 0.00023259          gaussseidele

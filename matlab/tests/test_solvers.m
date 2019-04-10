@@ -9,6 +9,8 @@ function test_small(t)
         @jacobie
         @gaussseidele
         @gaussseidels
+        @(A,b,x0,max_iter,tol) jacobis(A,b,x0,max_iter,tol,jacobi_omegaopt(A))
+        @(A,b,x0,max_iter,tol) sor(A,b,x0,max_iter,tol,sor_omegaopt(A))
     };
 
     A = [5.02 2.01 -0.98; 3.03 6.95 3.04; 1.01 -3.99 5.98];
@@ -28,20 +30,4 @@ function test_small(t)
         %   related by condition number .... handwavy here and say its correct
         %   https://archive.siam.org/books/textbooks/fr16_book.pdf
     end
-end
-
-
-
-function test_sparse(t)
-    A = sparse([5.02 2.01 -0.98; 3.03 6.95 3.04; 1.01 -3.99 5.98]);
-    b = [2.05 -1.02 0.98]';
-    x = A\b;
-
-    tol = 1e-6;
-    x0 = zeros(size(b));
-    omega = 2/3;
-
-    xhat = jacobis(A,b,x0,100000,tol,omega);
-    e = norm(A*xhat-b,Inf);
-    verifyTrue(t,all(e <= tol*100));
 end

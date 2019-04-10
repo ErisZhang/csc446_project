@@ -10,7 +10,7 @@ b = reshape(3*repmat(b,3,1) - [2 1 0]',[],1); % vertex->node-wise
 load = [0; -9.8; 0];
 
 [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,T,b,load, ...
-    'LinearSolver', @(A,b) jacobis(A,b,zeros(size(b)),1e10,1e-11,jacobi_omegaopt(A)));
+    'LinearSolver', @(A,b) sor(A,b,zeros(size(b)),1e3,1e-11,sor_omegaopt(A)));
 % save(saved_mats,'U', 'K', 'f', 'strain', 'stress', 'VM');
 
 bridge = matfile(saved_mats);
