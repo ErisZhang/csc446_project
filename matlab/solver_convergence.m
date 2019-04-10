@@ -8,6 +8,16 @@ fs = {
     @(A,b,x0,max_iters,tol) jacobis(A,b,x0,max_iters,tol,2/3)
     @gaussseidele
     @gaussseidels
+    @(A,b,x0,max_iters,tol) jacobis(A,b,x0,max_iters,tol,1.2)
+};
+
+solver_names = {
+    'jacobim'
+    'jacobie'
+    'omega-jacobi'
+    'gaussseidele'
+    'gaussseidels'
+    'sor'
 };
 
 % A = [5.02 2.01 -0.98; 3.03 6.95 3.04; 1.01 -3.99 5.98];
@@ -50,5 +60,8 @@ plot(iters, residuals(4,:) + noise);
 hold on;
 noise = rand.*residuals(5,:)*0.1;
 plot(iters, residuals(5,:) + noise);
-legend('jacobim', 'jacobie', 'omega-jacobi', 'gaussseidele', 'gaussseidels');
+hold on;
+noise = rand.*residuals(6,:)*0.1;
+plot(iters, residuals(6,:) + noise);
+legend(solver_names);
 hold off;
