@@ -4,16 +4,22 @@ end
 
 function test_small(t)
 
+    fns = {
+        'jacobi'
+        'gauss-seidel'
+        'jacobi-weighted'
+        'SOR'
+    };
+
     fs = {
-        @jacobim
-        @jacobie
-        @gaussseidele
-        @gaussseidels
-        @(A,b,x0,max_iter,tol) jacobis(A,b,x0,max_iter,tol,jacobi_omegaopt(A))
-        @(A,b,x0,max_iter,tol) sor(A,b,x0,max_iter,tol,sor_omegaopt(A))
+        @jacobi 
+        @sor   
+        @(A,b,x0,max_iter,tol) jacobi(A,b,x0,max_iter,tol,'Omega',jacobi_omegaopt(A))
+        @(A,b,x0,max_iter,tol) sor(A,b,x0,max_iter,tol,'Omega',sor_omegaopt(A))
     };
 
     A = [5.02 2.01 -0.98; 3.03 6.95 3.04; 1.01 -3.99 5.98];
+    A = sparse(A);
     b = [2.05 -1.02 0.98]';              
     x = A\b;
     %  0.50774
