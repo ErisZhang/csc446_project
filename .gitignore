@@ -4,4 +4,12 @@
 *.log
 *.out
 *.synctex.gz
+
+% bibtex
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+
+% matlab 
 *.m~

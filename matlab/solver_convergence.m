@@ -14,25 +14,27 @@ b = rand(n,1);
 x = A\b;
 
 jomega = jacobi_omegaopt(A)
-somega = sor_omegaopt(A)
+somega1 = sor_omegaopt(A)
 % jomega = 0.8;
-somega1 = 0.5;
+% somega1 = 0.5;
 somega2 = 1.5;
 
 fns = {
     'jacobi'
-    'gauss-seidel'
     'jacobi-weighted'
+    'gauss-seidel'
     '0.5-SOR'
     '1.5-SOR'
+    'pcg'
 };
 
 fs = {
     @jacobi 
-    @sor   
     @(A,b,x0,max_iter,tol) jacobi(A,b,x0,max_iter,tol,'Omega',jomega)
+    @sor   
     @(A,b,x0,max_iter,tol) sor(A,b,x0,max_iter,tol,'Omega',somega1)
     @(A,b,x0,max_iter,tol) sor(A,b,x0,max_iter,tol,'Omega',somega2)
+    @(A,b,x0,max_iter,tol) pcg(A,b,tol,max_iter)
 };
 
 
@@ -68,6 +70,9 @@ plot(iters, residuals(4,:) + noise);
 hold on;
 noise = rand.*residuals(5,:)*0.1;
 plot(iters, residuals(5,:) + noise);
+hold on;
+noise = rand.*residuals(6,:)*0.1;
+plot(iters, residuals(6,:) + noise);
 
 legend(fns);
 hold off;

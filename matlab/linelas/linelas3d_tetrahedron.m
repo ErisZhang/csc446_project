@@ -158,4 +158,3 @@ function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b,load,varargin)
         VM(Tet(i,:),1) = VM(Tet(i,:),1) + vm(i)./N(Tet(i,:),1);
     end
 end
-

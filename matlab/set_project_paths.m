@@ -12,5 +12,6 @@ function set_project_paths()
     addpath('mesh');
     addpath('linelas');
     addpath('solvers');
+    addpath('utils');
 
 end

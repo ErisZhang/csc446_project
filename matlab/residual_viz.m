@@ -23,9 +23,6 @@ omega =  1.5;
 [Uh,Kh,fh,strainh,stressh,VMh] = linelas3d_tetrahedron(V,T,b,load, ...
     'LinearSolver', @(A,b) sor(A,b,zeros(size(b)),max_iters,tol,'Omega',omega));
 
-% [Uh,Kh,fh,strainh,stressh,VMh] = linelas3d_tetrahedron(V,T,b,load);
-
-
 IJVV = matdiff(U,Uh,1e-6);
 size(IJVV)
 IJVV(1:min(10,end),:);
@@ -50,9 +47,3 @@ mean((VM-VMh)./VM)
 % `jet` by default has 64 colors
 % so 1/64=0.0156
 % 1/256 = 0.0039
-
-% 
-% function mypcg(A,b,)
-% end
-% pcg(A,b,tol,maxit)
-% 

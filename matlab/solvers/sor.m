@@ -66,6 +66,10 @@ function x = sors(A,b,x0,max_iter,tol,omega)
     for it = 1:max_iter
         xp = x;
 
+        if mod(it, 30) == 0
+            [it max_iter norm(r)/normb]
+        end
+
         for i = 1:n
             nnzi = nnzibyrow{i};
             x(i) = omega * Dinv(i) * ( -A(i,nnzi)*x(nnzi) + A(i,i)*x(i) + b(i) ) + ...
