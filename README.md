@@ -14,6 +14,14 @@
 + convergence speed is slow for classical iterative methods
     + slow for large `A`
         + e^k <= \rho(A) ~ 1 - c/d^2 (nearly 1 for large d) for some constant `c` and `d` is dimension of matrix `A`
++ if cannot get preconditioning to work, work on small
+
+
+what kind of experiments
++ linear solvers
+    + backslash (ground truth)
+    + gauss-seidel
+    + 
 
 
 ## Meetings 

@@ -17,12 +17,30 @@
 %       strain      #Tetx6  stress field
 %       stress      #Tetx6  strain field
 %       VM          #Vx1    von mises stress field
-function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b,load)
+function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b,load,varargin)
     assert(size(V,2) == 3,'Only 3D meshes are supported');
 
-    % silicone rubber ...
-    young = 1.45e5;  % young modulus
-    mu = 0.45;       % poisson ratio
+    young = 1.45e5;
+    mu = 0.45;
+    linearsolver = @(A,b) A\b;
+
+    % Map of parameter names to variable names
+    params_to_variables = containers.Map( ...
+        {'Young','Mu','LinearSolver'}, ...
+        {'young','mu','linearsolver'});
+    v = 1;
+    while v <= numel(varargin)
+        param_name = varargin{v};
+        if isKey(params_to_variables,param_name)
+            assert(v+1<=numel(varargin));
+            v = v+1;
+            % Trick: use feval on anonymous function to use assignin to this workspace
+            feval(@()assignin('caller',params_to_variables(param_name),varargin{v}));
+        else
+            error('Unsupported parameter: %s',varargin{v});
+        end
+        v=v+1;
+    end
 
     C = [
         (1-mu) mu mu 0 0 0
@@ -120,7 +138,7 @@ function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b,load)
     [K,f] = dirichlet_zero_boundary(K,f,b);
 
     tic;
-    u = K \ f;
+    u = linearsolver(K,f);
     toc;    % 1.45s
 
     U = zeros(size(V));

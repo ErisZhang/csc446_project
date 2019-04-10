@@ -18,13 +18,30 @@ function test_small(t)
     % -0.31141
     % -0.12966
 
-    eps = 1e-6;
+    tol = 1e-6;
+    x0 = zeros(size(b));
     for i = 1:size(fs,1)
-        xhat = fs{i}(A,b,zeros(size(b)),100000,eps);
+        xhat = fs{i}(A,b,x0,100000,tol);
         e = norm(A*xhat-b,Inf);
-        verifyTrue(t,all(e <= eps*100));
+        verifyTrue(t,all(e <= tol*100));
         % error bound is larger than tolerance supplied
         %   related by condition number .... handwavy here and say its correct
         %   https://archive.siam.org/books/textbooks/fr16_book.pdf
     end
+end
+
+
+
+function test_sparse(t)
+    A = sparse([5.02 2.01 -0.98; 3.03 6.95 3.04; 1.01 -3.99 5.98]);
+    b = [2.05 -1.02 0.98]';
+    x = A\b;
+
+    tol = 1e-6;
+    x0 = zeros(size(b));
+    omega = 2/3;
+
+    xhat = jacobis(A,b,x0,100000,tol,omega);
+    e = norm(A*xhat-b,Inf);
+    verifyTrue(t,all(e <= tol*100));
 end
