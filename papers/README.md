@@ -47,7 +47,10 @@
         + usage of tensor notation 
 
 
-## textbooks/slides/reports
+## textbooks / chapters / slides / reports 
+
++ [text_2003_iterative_methods_for_sparse_linear_systems2ed](text_2003_iterative_methods_for_sparse_linear_systems2ed.pdf)
+    + sparse linear solvers, preconditioning, convergence proofs ...
 
 
 + [text_2009_structural_analysis_with_applications_to_aerospace_structures](text_2009_structural_analysis_with_applications_to_aerospace_structures.pdf)
@@ -74,6 +77,9 @@
 + [course_linear_elasticity_variational_formulation](course_linear_elasticity_variational_formulation.pdf)
     + simple formulation 
 
++ [ch4_numerical_integration_methods_to_evaluate_triple_integrals_using_generalized_gaussian_quadrature](ch4_numerical_integration_methods_to_evaluate_triple_integrals_using_generalized_gaussian_quadrature.pdf)
+    + gaussian quadrature in 3d
+
 + [ch16_application_of_assembly_of_finite_element_methods_on_graphics_processors_for_real_time_elastodynamics]
     + good explanation of FEM method 
     + GPU algos/impls for FEM on GPU
@@ -82,7 +88,6 @@
     + basis function for 1d/2d
 
 + [me582_ch3_fea_on_thermofluids](me582_ch3_fea_on_thermofluids.pdf)
-
 
 
 + how to apply dirichlet boundary constraints to global stiffness matrix
@@ -112,7 +117,7 @@
         + derivation of barycentric coordinate, matrix form of stiffness operator, interpolation ...
     + on hexahedrons [part2](http://what-when-how.com/the-finite-element-method/fem-for-3d-solids-finite-element-method-part-2/)
 
-+ [computational fabrication simulation slides](compfab_05_simulation_ii.pdf)
++ [computational fabrication simulation slides](slides_compfab_05_simulation_ii.pdf)
     + pretty helpful on going from energy -> nodal displacement formulation for element-wise stiffness `K_e`
 
 + [2002_matlab_implementation_of_the_finite_element_method_in_elasticity](2002_matlab_implementation_of_the_finite_element_method_in_elasticity.pdf)

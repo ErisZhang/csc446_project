@@ -1,5 +1,8 @@
 % Successive-over relaxation on {s}parse matrix
 %
+%       Convergence: A SPD 
+%           reference: Iterative method for Sparse Linear Systems 2ed (p105)
+%
 %       x_{i}^{k+1} = (omega/a_{ii}) * [
 %           -\sum_{j=1}^{i-1} a_{ij} x_{j}^{k+1} - \sum_{j=i+1}^n a_{ij} x_{j}^{k} + b_{i}]
 %           + (1-omega) * x_{i}^{k}

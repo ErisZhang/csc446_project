@@ -1,5 +1,7 @@
 % Gives optimal value for weighted-Jacobi
-%   reference: https://en.wikipedia.org/wiki/Successive_over-relaxation#Convergence
+%   reference: 
+%       https://en.wikipedia.org/wiki/Successive_over-relaxation#Convergence
+%       Iterative method for Sparse Linear Systems 2ed (p148)
 %   
 %   Note: not really applicable, has constraints that is not true for stiffness matrix
 function opt = sor_omegaopt(A)
