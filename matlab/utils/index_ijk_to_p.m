@@ -1,8 +1,8 @@
 % a little data structure to map (i,j,k) to p
 function [P,dof,B] = index_ijk_to_p(W)
-    I = size(W, 1);
-    J = size(W, 2);
-    K = size(W, 3);
+    I = size(W,1);
+    J = size(W,2);
+    K = size(W,3);
     P = zeros(I+1,J+1,K+1);
     dof = 0;
     B = [];
@@ -27,7 +27,7 @@ function [P,dof,B] = index_ijk_to_p(W)
                 if is_mesh_point == 1
                     dof = dof + 1;
                     P(i,j,k) = dof;
-                    if k == 1
+                    if i == 1
                         B = [B dof]; % boundary points
                     end
                 end
