@@ -49,6 +49,11 @@
 
 ## textbooks / chapters / slides / reports 
 
++ [6.2_iterative_methods](6.2_iterative_methods.pdf)
+    + convergence tst
+        + M = I - P^{-1}A must have \rho(M) < 1
+        + 0.9 0.99 is ok
+
 + [text_2003_iterative_methods_for_sparse_linear_systems2ed](text_2003_iterative_methods_for_sparse_linear_systems2ed.pdf)
     + sparse linear solvers, preconditioning, convergence proofs ...
 

@@ -206,7 +206,7 @@ This amounts to applying the principle of least work to mechanical systems. Simp
 
 \subsection{Discretization}
 
-We construct a mesh $\sT$ that partitions the domain $\Omega$ where each $\Omega^e \in\sT$ is a tetrahedron and $n$ is number of vertices of the mesh. The mesh is generated with \texttt{tetgen}, which is a delaunay-based tetrahedralization algorithm that generates mesh with good geometric properties. We define a linear nodal basis function that is 0 at all vertices of the mesh, except has value of 1 at one vertex . Note the boundary value equations are vector valued, so we compose the same scalar valued nodal basis function for each component of the vector field. Therefore, we arrive at $3n$ linear basis that form a finite dimensional subspace of $\sV$,
+There are many ways to discretize the domain. We will clarify computer implementations on tetrahedron elements first, and then briefly explain how we can adapt similar strategies for regular hexahedron elements. We construct a mesh $\sT$ that partitions the domain $\Omega$ where each $\Omega^e \in\sT$ is a tetrahedron and $n$ is number of vertices of the mesh. The mesh is generated with \texttt{tetgen}, which is a delaunay-based tetrahedralization algorithm that generates mesh with good geometric properties. We define a linear nodal basis function that is 0 at all vertices of the mesh, except has value of 1 at one vertex . Note the boundary value equations are vector valued, so we compose the same scalar valued nodal basis function for each component of the vector field. Therefore, we arrive at $3n$ linear basis that form a finite dimensional subspace of $\sV$,
 \[
     \sV_{3n} = \text{span} \pc{
         \varphi_1, \cdots, \varphi_{3n}
@@ -427,7 +427,7 @@ where $\bD,\bL,\bU$ are the diagonal, negative of strictly lower-triangular, and
 \[
     \bx^{(k+1)} = \bH \bx^{(k)} + \bv
 \]
-for some $\bH,\bv$. Specifically, we are interested in stationary methods that are convergent for symmetric positive definite $\bA$. Initially, we started with Jacobi's method,
+for some $\bH,\bv$. Specifically, we are interested in stationary methods that are convergent for symmetric positive definite $\bA$. Initially, we started with Jacobi's method, where
 \[
     \bH = \bP^{-1} (\bL+\bU) = \bI - \bD^{-1} \bA
     \quad\quad
@@ -435,19 +435,50 @@ for some $\bH,\bv$. Specifically, we are interested in stationary methods that a
 \]
 and element-wise iteration
 \[
-    \bx^{(k+1)}_i = \frac{1}{a_{ii}} \p{
-        b_1 - \sum_{j\neq i} a_{ij} \bx^{(k)}_j
+    x^{(k+1)}_i = \frac{1}{a_{ii}} \p{
+        b_1 - \sum_{j\neq i} a_{ij} x^{(k)}_j
     }    
 \]
-Jacobi's iteration is embarrassingly parrallel, as $\bx^{k+1}$ is only dependent upon previous $\bx^{k}$ and so every iteration can be fully parallelised. However, positive definiteness of $\bA$ is not sufficient for convergence. In general, linear elasticity problem does not satisfy $\rho(\bH) < 1$, which is an equivalent condition for convergence given nonsingular $\bA$,$\bP$.~\cite{iserles_2009} Instead, we used weighted Jacobi, 
+Jacobi's iteration is embarrassingly parrallel, as $\bx^{k+1}$ is only dependent upon previous $\bx^{k}$ and so every iteration can be fully parallelised. However, positive definiteness of $\bA$ is not sufficient for convergence. In general, linear elasticity problem does not satisfy $\rho(\bH) < 1$, which is an equivalent condition for convergence given nonsingular $\bA$,$\bP$.~\cite{iserles_2009} Instead, we used weighted or dampled Jacobi ($\omega$-Jacobi)
 \[
     \bH = \bI - \omega \bD^{-1} \bA
-    \bx^{(k+1)}_i = \frac{1}{a_{ii}} \p{
-        b_1 - \sum_{j\neq i} a_{ij} \bx^{(k)}_j
-    }
+    \quad\quad
+    \bv = \omega \bD^{-1} \bb
 \]
-which is convergent given symmetric positive definite $\bA$ 
+and element-wise iteration
+\[
+    x^{(k+1)}_{i} = \frac{\omega}{a_{ii}} \p{ b_i - \sum_{j=i} a_{ij} x_{j}^{(k)} }
+        + (1-\omega) x^{(k)}_{i}
+\]
+for some $\omega \in (0,1)$. In practice, $\omega$ forces eigenvalues of $\bH$ to approach 1, and allows for convergence for some problems that is otherwise divergent with Jacobi's method. Another stationary method we want to explore is Successive Over-Relaxation (SOR) method,
+\[
+    \bH = (\bI - \omega \bD^{-1}\bL)^{-1} \p{ (1-\omega)\bI + \omega \bD^{-1}\bU }
+    \quad\quad
+    \bv = \omega (\bI - \omega \bD^{-1}\bL)^{-1} \bD^{-1} \bb
+\]
+and element-wise iteration
+\[
+    x_{i}^{(k+1)} = 
+        \frac{\omega}{a_{ii}} \p{
+            b_i - \sum_{j<i} a_{ij} x^{(k+1)}- \sum_{j>i} a_{ij} x^{(k)}_j
+        }
+        + 
+        (1-\omega) x^{(k)}_i
+\]
+for some $\omega \in [1,2)$. SOR reduces to Gauss-Seidel method for $\omega=1$. Additionally, it can be proved that, given symmetric positive definite $\bA$, SOR converges for any $\omega \in (0,2)$.~\cite{saad_2003}. However, each iteration of SOR has data dependencies on both $\bx^{(k)}$ and $\bx^{(k+1)}$, and is therefore less inclined to be parallelised.
 
+\section{Numerical Experiments}
+
+The goal of this section is to experimentally investigate the performance of the few iterative methods described above. Briefly, we have implemented 
+\begin{enumerate}
+    \item FEM solver on linear tetrahedron and linear regular hexahedron
+    \item $\omega$-Jacobi and SOR linear solvers for sparse matrices. 
+\end{enumerate}
+The solution to the linear system $\bK \bu = \bF$ can be interpreted as a discrete displacement field sampled over vertices of the mesh. From the displacement field, we acn compute the corresponding strain, stress, and von Mises' stress fields over the vertices. To visualize the result, we interpolate the discrete vector fields over the surface of the mesh using barycentric interpolation. To perform valid numerical comparisons, we used \texttt{mldivide} (the backslash) to solve for displacements and stress fields, which act as the ground truth for comparing with the iterative methods. 
+
+
+% data.
+% r^k, u^k, Bs,   then can compute stress field, can do diffs ...
 
 
 \newpage
