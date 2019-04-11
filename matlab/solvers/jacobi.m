@@ -12,17 +12,26 @@
 %           'Omega', (defaults to 1)
 %                    0 < omega < 1
 %
-function x = jacobi(A,b,x0,max_iter,tol,varargin)
+%           'SaveOn', []
+%                   indices `k`s' for which {x^k, r^k} will be saved
+%
+%   Outputs
+%       varargout:
+%           xks     each coloum is x^k
+%           rks     each coloum is r^k
+%
+function [x,varargout] = jacobi(A,b,x0,max_iter,tol,varargin)
     assert(numel(unique([size(A,2) size(b,1) size(x0,1)])) == 1, ...
         'A,b dimension should match');
 
     % un-weighted jacobi
     omega = 1;
+    saveon = zeros(0,1);
 
     % Map of parameter names to variable names
     params_to_variables = containers.Map( ...
-        {'Omega'}, ...
-        {'omega'});
+        {'Omega','SaveOn'}, ...
+        {'omega','saveon'});
     v = 1;
     while v <= numel(varargin)
         param_name = varargin{v};
@@ -38,16 +47,18 @@ function x = jacobi(A,b,x0,max_iter,tol,varargin)
     end
 
     if issparse(A)
-        x = jacobis(A,b,x0,max_iter,tol,omega);
+        [x,xks,rks] = jacobis(A,b,x0,max_iter,tol,omega,saveon);
     else
-        x = jacobid(A,b,x0,max_iter,tol);
+        [x,xks,rks] = jacobid(A,b,x0,max_iter,tol,saveon);
     end
+    varargout{1} = xks;
+    varargout{2} = rks;
 end
 
 
 % Weighted-Jacobi on sparse `A`
 %       omega = 2/3 is a good value
-function x = jacobis(A,b,x0,max_iter,tol,omega)
+function [x,varargout] = jacobis(A,b,x0,max_iter,tol,omega,saveon)
 
     nnzibyrow = nnz_indices_byrow(A);
 
@@ -61,12 +72,16 @@ function x = jacobis(A,b,x0,max_iter,tol,omega)
     xp = x0;
     normb = norm(b);
 
+    saveoni = 1;
+    xks = zeros(size(x0,1),0);
+    rks = zeros(size(x0,1),0);
+
     for it = 1:max_iter
         xp = x;
 
-        % if mod(it, 10) == 0
-        %     [it max_iter norm(r,inf)]
-        % end
+        if mod(it, 50) == 0
+            fprintf('(Jacobi) %d/%d:\t%.5e (rel residual)\n',it,max_iter,norm(r)/normb);
+        end
 
         for i = 1:n
             nnzi = nnzibyrow{i};
@@ -76,10 +91,19 @@ function x = jacobis(A,b,x0,max_iter,tol,omega)
 
         r = (x-xp).*Dinv;
 
+        if ~isempty(saveon) && saveoni <= max(size(saveon)) && saveon(saveoni) == it
+            xks(:,saveoni) = x;
+            rks(:,saveoni) = r;
+            saveoni = saveoni + 1;
+        end
+
         if norm(r)/normb <= tol
-            return;
+            break;
         end
     end
+
+    varargout{1} = xks;
+    varargout{2} = rks;
 end
 
 
@@ -87,7 +111,7 @@ end
 %       iteration:
 %           x^{k+1}_{i} = (1/a_{ii}) [ \sum_{j=1,j\neq i}^n -a_{ij}*x_{j}^{k} + b_i ]
 %
-function x = jacobid(A,b,x0,max_iter,tol)
+function [x,varargout] = jacobid(A,b,x0,max_iter,tol,saveon)
     assert(all(full(diag(A)~=0)), 'A_{ii} cannot be 0 for all i for 1-Jacobi');
 
     n = size(A,1);
@@ -99,6 +123,10 @@ function x = jacobid(A,b,x0,max_iter,tol)
     xp = x0;
     normb = norm(b);
 
+    saveoni = 1;
+    xks = zeros(size(x0,1),0);
+    rks = zeros(size(x0,1),0);
+
     for it = 1:max_iter
         xp = x;
 
@@ -107,9 +135,18 @@ function x = jacobid(A,b,x0,max_iter,tol)
         end
 
         r = (x-xp).*Dinv;
+
+        if ~isempty(saveon) && saveoni <= max(size(saveon)) && saveon(saveoni) == it
+            xks(:,saveoni) = x;
+            rks(:,saveoni) = r;
+            saveoni = saveoni + 1;
+        end
     
         if norm(r)/normb <= tol
-            return;
+            break;
         end
     end
+
+    varargout{1} = xks;
+    varargout{2} = rks;
 end

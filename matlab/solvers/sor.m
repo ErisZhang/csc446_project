@@ -12,18 +12,24 @@
 %           'Omega', (defaults to 1)
 %                    0 < omega < 2
 %
-function x = sor(A,b,x0,max_iter,tol,varargin)
+%   Outputs
+%       varargout:
+%           xks     each coloum is x^k
+%           rks     each coloum is r^k
+%
+function [x,varargout] = sor(A,b,x0,max_iter,tol,varargin)
     assert(issparse(A), 'A has to be sparse');
     assert(numel(unique([size(A,2) size(b,1) size(x0,1)])) == 1, ...
         'A,b dimension should match');
 
     % Gauss-Seidel iteration
     omega = 1;
+    saveon = zeros(0,1);
 
     % Map of parameter names to variable names
     params_to_variables = containers.Map( ...
-        {'Omega'}, ...
-        {'omega'});
+        {'Omega','SaveOn'}, ...
+        {'omega','saveon'});
     v = 1;
     while v <= numel(varargin)
         param_name = varargin{v};
@@ -38,18 +44,16 @@ function x = sor(A,b,x0,max_iter,tol,varargin)
         v=v+1;
     end
 
-    if omega == 1
-        x = gaussseidel(A,b,x0,max_iter,tol);
-    else
-        x = sors(A,b,x0,max_iter,tol,omega);
-    end
+    [x,xks,rks] = sors(A,b,x0,max_iter,tol,omega,saveon);
+    varargout{1} = xks;
+    varargout{2} = rks;
 end
 
 
 
 
 % SOR on sparse `A`
-function x = sors(A,b,x0,max_iter,tol,omega)
+function [x,varargout] = sors(A,b,x0,max_iter,tol,omega,saveon)
 
     nnzibyrow = nnz_indices_byrow(A);
 
@@ -63,11 +67,15 @@ function x = sors(A,b,x0,max_iter,tol,omega)
     xp = x0;
     normb = norm(b);
 
+    saveoni = 1;
+    xks = zeros(size(x0,1),0);
+    rks = zeros(size(x0,1),0);
+
     for it = 1:max_iter
         xp = x;
 
-        if mod(it, 30) == 0
-            [it max_iter norm(r)/normb]
+        if mod(it, 50) == 0
+            fprintf('(SOR) %d/%d:\t%.5e (rel residual)\n',it,max_iter,norm(r)/normb);
         end
 
         for i = 1:n
@@ -78,12 +86,23 @@ function x = sors(A,b,x0,max_iter,tol,omega)
 
         r = (x-xp).*Dinv;
 
+        if ~isempty(saveon) && saveoni <= max(size(saveon)) && saveon(saveoni) == it
+            xks(:,saveoni) = x;
+            rks(:,saveoni) = r;
+            saveoni = saveoni + 1;
+        end
+
         if norm(r)/normb <= tol
-            return;
+            break;
         end
     end
+
+    varargout{1} = xks;
+    varargout{2} = rks;
 end
 
+
+% Following code not really in use ..
 
 
 % Gauss-Seidel iterative method for `Ax = b` where `A` is {s}parse

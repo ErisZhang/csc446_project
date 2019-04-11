@@ -17,17 +17,23 @@
 %       strain      #Tetx6  stress field
 %       stress      #Tetx6  strain field
 %       VM          #Vx1    von mises stress field
-function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b,load,varargin)
+%       Bs          #Tetx6x12   B matrix for all tets ... 
+%       C           6x6     stiffness tensor
+%       data        {2}     struct for storing `saveon` data ... 
+%               xks  from linear solver
+%               rks  from linear solver
+function [U,K,f,strain,stress,VM,Bs,C,data] = linelas3d_tetrahedron(V,Tet,b,load,varargin)
     assert(size(V,2) == 3,'Only 3D meshes are supported');
 
     young = 1.45e5;
     mu = 0.45;
-    linearsolver = @(A,b) A\b;
+    linearsolver = false;
+    saveon = {};
 
     % Map of parameter names to variable names
     params_to_variables = containers.Map( ...
-        {'Young','Mu','LinearSolver'}, ...
-        {'young','mu','linearsolver'});
+        {'Young','Mu','LinearSolver', 'SaveOn'}, ...
+        {'young','mu','linearsolver', 'saveon'});
     v = 1;
     while v <= numel(varargin)
         param_name = varargin{v};
@@ -72,7 +78,7 @@ function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b,load,varargin)
     for i = 1:size(Tet,1)
 
         if mod(i,1000) == 0
-            [i size(Tet,1)]
+            fprintf('(tet) %d/%d\n',i,size(Tet,1));
         end
 
         Teti = Tet(i,:);
@@ -129,7 +135,7 @@ function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b,load,varargin)
         K(ij2p,ij2p) = K(ij2p,ij2p) + Ke;
         f(ij2p) = f(ij2p) + fe;
     end
-    toc;    % 68s
+    toc;
 
     % tested once \checkmark
     % assert(issymmetric_approx(K, 1e-3) == true);
@@ -138,23 +144,30 @@ function [U,K,f,strain,stress,VM] = linelas3d_tetrahedron(V,Tet,b,load,varargin)
     [K,f] = dirichlet_zero_boundary(K,f,b);
 
     tic;
-    u = linearsolver(K,f);
-    toc;    % 1.45s
-
-    U = zeros(size(V));
-    U(:,1) = u(1:3:end);
-    U(:,2) = u(2:3:end);
-    U(:,3) = u(3:3:end);
-
-    [strain,stress,vm]=per_element_fields(Tet,C,Bs,u);
-
-    N = zeros(size(V,1),1);
-    for i=1:size(Tet,1)
-        N(Tet(i,:)) = N(Tet(i,:)) + 1;
+    if islogical(linearsolver)
+        u = K/f;
+    else
+        [u,data.xks,data.rks] = linearsolver(K,f);
     end
+    toc;
 
-    VM = zeros(size(V,1),1);
-    for i=1:size(Tet,1)
-        VM(Tet(i,:),1) = VM(Tet(i,:),1) + vm(i)./N(Tet(i,:),1);
-    end
+    [U,strain,stress,vm,VM] = compute_fields(V,Tet,C,Bs,u);
+
+    % U = zeros(size(V));
+    % U(:,1) = u(1:3:end);
+    % U(:,2) = u(2:3:end);
+    % U(:,3) = u(3:3:end);
+
+    % [strain,stress,vm]=per_element_fields(Tet,C,Bs,u);
+
+    % N = zeros(size(V,1),1);
+    % for i=1:size(Tet,1)
+    %     N(Tet(i,:)) = N(Tet(i,:)) + 1;
+    % end
+
+    % VM = zeros(size(V,1),1);
+    % for i=1:size(Tet,1)
+    %     VM(Tet(i,:),1) = VM(Tet(i,:),1) + vm(i)./N(Tet(i,:),1);
+    % end
 end
+
