@@ -46,6 +46,7 @@ end
 
 
 % Weighted-Jacobi on sparse `A`
+%       omega = 2/3 is a good value
 function x = jacobis(A,b,x0,max_iter,tol,omega)
 
     nnzibyrow = nnz_indices_byrow(A);
