@@ -1,10 +1,12 @@
-\documentclass[11pt]{article}
+\documentclass[11pt,titlepage]{article}
 \input{\string~/.macros}
-\usepackage[a4paper, total={6in, 8in}, margin=1.5in]{geometry}
+\usepackage[a4paper, total={6in, 8in}]{geometry}   % margin=1in
+\usepackage[utf8]{inputenc}
 \usepackage{hyperref}
-\hypersetup{colorlinks=true, linktoc=all, linkcolor=blue}
+\hypersetup{colorlinks=true, linktoc=all, linkcolor=blue, citecolor=blue}
 \usepackage[backend=biber,sorting=none]{biblatex}
 \addbibresource{references.bib}
+\setcounter{MaxMatrixCols}{20}
 
 % \linespread{1.5}
  
@@ -18,22 +20,31 @@
 \newcommand{\ta}{\tilde{a}}
 \renewcommand{\bphi}{\boldsymbol{\varphi}}
 
+\title{CSC446 Report}
+\author{Peiqi Wang, Eris Zhang}
+\date{April 10, 2019}
+
 \begin{document}
 
-\section*{Abstract}
+\maketitle
+\tableofcontents
 
-We aim to determine failure cases, i.e. fractures, breakage, etc. for solid statues of arbitrary elastic material in real time. To solve this problem, we aim to perform linear elasticity simulation and determine yield stress for a solid geometry. To make the solution fast enough, we aim to use a combination of voxel grids and matrix-free iterative method to allow for parallelism. Briefly, we will
-\begin{enumerate}
-    \item provide background introduction and model assumptions
-    \item describe differential equations governing linear elasticity
-    \item discuss strong and weak solutions and clarify implementation strategies
-    \item explore tricks to make simulation faster
-\end{enumerate}
+\newpage
+\section{Introduction}
+
+In computational fabrication, it is crucial to quantify how a 3D printed objects might break or fail using linear elasticity simulations.~\cite{zhou_panetta_zorin_2013}~\cite{langlois_shamir_dror_matusik_levin_2016}~\cite{langlois_shamir_dror_matusik_levin_2016} To enable interactive design and optimization of shapes such that failure cases are minimized, there has been work to increase the speed of simulation with novel interpolation algorithms~\cite{schulz_xu_zhu_zheng_grinspun_matusik_2017} or with the help of modern parallel hardwares.~\cite{dick_georgii_westermann_2011}. A particularly interesting and relevant work uses matrix-free iterative methods to perform real time simulation on GPU.~\cite{yadav_suresh_2014}~\cite{marix_free_voxel_fem_thesis_2018}
+
+% There is recent interest in utilizing iterative methods  line of work uses iterative methods to solve linear elasticity systems.~\cite{multigrid_preconditioning_thesis_2016}
+
+ 
+The aim of this report is to explore potential methods to visualize failure cases, i.e. fractures, breakage, etc. for solid shapes of elastic material in real time. For our use case, precision of simulation is only important up to the visualization not deviating from the ground truth by human perception. To exploit this assumption, we explored different iterative methods to solve the linear system resulted from finite element discretization. We explored linear basis functions on both tetrahedron element and regular hexahedron element. In the latter case, we can avoid the costly operation of numerically computing integrals at each element, which opens up opportunity to use matrix-free iterative method with substantial reduction in memory and time cost.
 
 
-\section*{Introduction \& Definitions}
+\section{Linear Elasticity}
 
-Continuum mechanics deals with behavior of material modeled as a continuous mass. The study of elastic material is a subset of continuum mechanics that models the ability of a material to resist influence and return to its original configuration when the influence is removed. The following definitions are important to elasticity theory and provide important background for rest of the report.
+\subsection{Background}
+
+Continuum mechanics deals with behavior of material modeled as a continuous mass. The study of elastic material is a subset of continuum mechanics that models the ability of a material to resist influence and return to its original configuration when the influence is removed. The following definitions are important to elasticity theory and provide important background for rest of the report.~\cite{bauchau_craig_2009}
 
 \begin{enumerate}
     \item \bheading{stress} describes internal force over a differential area at a point, which can be represented as a symmetric second order tensor $\bsigma$,
@@ -65,23 +76,19 @@ Continuum mechanics deals with behavior of material modeled as a continuous mass
         \bu = \p{u_1, u_2, u_3}
     \]
     \item \bheading{yield} a point on a stress-strain curve of a material that indicates the limit of elastic behavior. Material experiencing stress over the yield point will suffer from permanent deformations.
+    \item \bheading{von Mises yielding criterion} Ultimately, we are interested in computing the stress field over all points within a solid geometry, from which we can deduce material yielding by comparing the effective stress $\sigma_e$ with material-specific yield stress $\sigma_y$. Simply, we use Von Mises' criterion to determine yielding, 
+    \[
+        \sigma_e = \frac{1}{\sqrt{2}}\sqrt{
+            (\sigma_{11} - \sigma_{22})^2 
+            + (\sigma_{22} - \sigma_{33})^2 
+            + (\sigma_{33} - \sigma_{11})^2
+            + 6(\sigma_{23}^2 + \sigma_{31}^2 + \sigma_{12}^2)
+        } > \sigma_y
+    \]
 \end{enumerate}
 
 
-\section*{Goal}
-
-Ultimately, we are interested in computing the stress field over all points within a solid geometry, from which we can deduce material yielding by comparing the effective stress $\sigma_e$ with material-specific yield stress $\sigma_y$. Simply, we use Von Mises' criterion to determine yielding, 
-\[
-    \sigma_e = \frac{1}{\sqrt{2}}\sqrt{
-        (\sigma_{11} - \sigma_{22})^2 
-        + (\sigma_{22} - \sigma_{33})^2 
-        + (\sigma_{33} - \sigma_{11})^2
-        + 6(\sigma_{23}^2 + \sigma_{31}^2 + \sigma_{12}^2)
-    } > \sigma_y
-\]
-
-
-\section*{Problem Assumptions}
+\subsection{Problem Assumptions}
 
 Here, we lay down simplifying assumptions for our problem.
 \begin{enumerate}
@@ -110,7 +117,7 @@ Here, we lay down simplifying assumptions for our problem.
 \end{enumerate}
 
 
-\section*{Differential Equations}
+\subsection{Differential Equations}
 
 From physical laws and simplifying assumptions, we can derive a set of equations governing linear elasticity with respect to the stress field $\bsigma$, the strain field $\bepsilon$, and the displacement field $\bu$. We express the equations in tensor notations.
 \begin{enumerate}
@@ -123,12 +130,15 @@ From physical laws and simplifying assumptions, we can derive a set of equations
     \item \bheading{Kinematics Equations} express deformation with respect to displacement without reference to forces that created them. 
     \[
         \bepsilon = \dfrac{1}{2} \p{
-            \nabla \bu + (\nabla\bu)^T
+            \nabla \bu + \nabla\bu^T
         }
         \quad\quad\quad\quad
         \epsilon_{ij} = 
             \frac{1}{2} \p{
-                \frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i}}
+                u_{i,j} + u_{j,i}
+            }
+            % \frac{1}{2} \p{
+            %     \frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i}}
     \]
     \item \bheading{Constitutive Law} describes behavior of material under stress. We approximate behavior of linear elastic material with Hooke's Law
     \[
@@ -151,60 +161,244 @@ From physical laws and simplifying assumptions, we can derive a set of equations
 \end{enumerate}
 
 
-\section*{Boundary Value Problem}
-For our purposes, it is easier to eliminate stress and strain to seek a set of equations where the displacement field is the primary unknown. We can achieve this by writing the strain $\bsigma$ in the equilibrium equation as a function of displacement $\bu$ using the constitutive law and kinematics equations. In other words, we seek displacement field $\bu \in \mathring{\BH}$ satisfying
+\subsection{Boundary Value Problem}
+For our purposes, it is easier to eliminate stress and strain to seek a set of equations where the displacement field is the primary unknown. We can achieve this by writing the strain $\bsigma$ in the equilibrium equation as a function of displacement $\bu$ using the constitutive law and kinematics equations. In other words, we seek displacement field $\bu$ in $\R^3$ satisfying
 \begin{align*}
-    -\nabla \cdot \p{\bC \bepsilon(\bu)}
+    -\nabla \cdot \bC \p{\bepsilon(\bu)}
         &= \bf & \bx\in\Omega \\
-    \bu &= 0   &\bx\in\partial\Omega
+    \bu &= 0   &\bx\in\Gamma
 \end{align*}
-where $\Omega\in\R^3$ is a closed and bounded region occupied by a linear elastic solid, with boundary $\partial\Omega$. $\mathring{\BH} := \mathring{\BH}(\Omega,\R^3)$ is the first Sobolev space satisfying the zero boundary condition. $\bepsilon$ is a linear differential operator over the displacement $\bu$, while $\bC$ is a linear operator over the the strain $\bepsilon(\bu)$, which is positive definite for linear elastic isotropic material. It is easy to see that $\sL := -\nabla \cdot \p{\bC \bepsilon(\cdot)}$ is a linear differential operator. So we have,
-\begin{align*}
-    \sL \bu &= \bf  & \bx\in\Omega \\
-    \bu   &= 0    &\bx\in\partial\Omega
-\end{align*}
+where $\Omega\in\R^3$ is a closed and bounded region occupied by a linear elastic solid, with boundary $\partial\Omega$. $\Gamma \subset \partial\Omega$ is part of boundary that the object cannot be displaced. $\sV := \pc{\bv\in H(\Omega,\R^3) \mid \bv|_{\Gamma} = \mathbf{0}}$ is a first Sobolev space satisfying the zero boundary condition on $\Gamma$. $\bepsilon$ is a linear differential operator over the displacement field $\bu$, while $\bC$ is a linear operator over the the strain field $\bepsilon(\bu)$, which is positive definite for linear elastic isotropic material. It is easy to see that $\sL := -\nabla \cdot \p{\bC \bepsilon(\cdot)}$ is a linear differential operator.
 
+\section{Finite Element Formulation}
+It is conventional to use finite element method to solve linear elasticity equations for 3-dimensional objects with complex geometry. We will formulate the boundary value problem in both the weak and variational form. The two formulations are equivalent in our setup. We will then discuss computer implementation strategies on tetrahedron elements, and briefly on regular hexahedron elements.
 
-\section*{Finite Element Formulation}
-It is conventional to use finite element method to solve linear elasticity equations for 3-dimensional objects with complex geometry. We will formulate the boundary value problem in both the weak and variational form. The two formulations are equivalent in our setup.
-
-\subsection*{Weak Form}
-The goal is to estimate $\bu$ in a finite dimensional function space $\mathring{\BH}_m$ spanned by a set of basis functions $\pc{\bv_1, \cdots, \bv_m} \subset \mathring{\BH}$. We can formulate linear elasticity weakly as
+\subsection{Weak Form}
+The goal is to estimate $\bu$ in a finite dimensional function space $\sV_m\subset\sV$ spanned by a set of basis functions $\pc{\bu_1, \cdots, \bu_m} \subset \sV$. We can formulate linear elasticity weakly as
 \[
-    \int_{\Omega} \bC\bepsilon(\bu) : \bepsilon(\bv_k) d\bx
+    \int_{\Omega} \bC\bepsilon(\bu) : \bepsilon(\bv) d\bx
     = 
-    \int_{\Omega} \bf \cdot \bv_k d\bx
-    \tag{$k=1,\cdots,m$}
+    \int_{\Omega} \bf \cdot \bu d\bx
 \]
-where the left hand side is obtained via Green's first identity assuming a pure displacement formulation with no traction force on the boundary. We can define a bilinear form $\ta(\cdot,\cdot)$
+for all $\bv \in\sV$. The left hand side is obtained via Green's first identity assuming a pure displacement formulation with no traction force on the boundary.~\cite{multigrid_preconditioning_thesis_2016} We can define a bilinear form $\ta(\cdot,\cdot)$
 \[
     \ta(\bu,\bv) = \inner{\sL \bu}{\bv}
-        = \int_{\Omega} \bC \bepsilon(\bu) : \bepsilon(\bu) d\bx    
+        = \int_{\Omega} \bC \bepsilon(\bu) : \bepsilon(\bv) d\bx    
 \]
-where $\inner{\cdot}{\cdot}$ is $L^2$ norm over $\Omega$. We can rewrite the Galerkin's Equations as
+where $\inner{\cdot}{\cdot}$ is $L^2$ norm over $\Omega$. 
+
+% We can rewrite the Galerkin's Equations as
+% \[
+%     \ta(\bu,\bu_k) = \inner{\bf}{\bu_k}
+% \]
+% for $k=1,\cdots,m$.
+
+\subsection{Variational Form}
+By theorem 9.1 in~\cite{iserles_2009}, $\sL \bu = \bf$ is the Euler-Lagrange equation of following variational problem
 \[
-    \ta(\bu,\bv_k) = \inner{\bf}{\bv_k}
-    \tag{$k=1,\cdots,m$}
+    \sJ(\bu) := \ta(\bu,\bu) - 2\inner{\bf}{\bu}
 \]
-\subsection*{Variational Form}
-We can show that $\sL$ is positive definite [insert proof here]. By theorem [cite textbook], $\sL \bu = \bf$ is the Euler-Lagrange equation of following variational problem
+where $\sJ: \sV\to \R$ is a functional and $\bu\in\sV$. The theorem also guarantees the uniqueness and existence of solution for the boundary value problem. Therefore, we can solve for an equivalent optimization problem
 \[
-    \sJ(\bv) := \ta(\bv,\bv) - 2\inner{\bf}{\bv}
-    \quad\quad\quad
-    \bv\in\BH
+    \min_{\bu\in \sV} \;\; \sJ(\bu)
+    \quad \text{ where } \quad
+    \sJ(\bu) = 
+        \underbrace{\frac{1}{2}\int_{\Omega} \bC \bepsilon(\bu) : \bepsilon(\bu) d\bx }_\text{potential energy}
+      - \underbrace{\int_{\Omega} \bf \cdot\bu d\bx}_\text{work}
 \]
-where $\sJ: \BH\to \R$ is a functional. The theorem also guarantees the uniqueness and existence of solution for the boundary value problem. Therefore, we want to solve the following optimization problem
+This amounts to applying the principle of least work to mechanical systems. Simply, we are minimizing the internal potential energy and work done by external force (e.g. gravity) on the object.
+
+
+\subsection{Discretization}
+
+We construct a mesh $\sT$ that partitions the domain $\Omega$ where each $\Omega^e \in\sT$ is a tetrahedron and $n$ is number of vertices of the mesh. The mesh is generated with \texttt{tetgen}, which is a delaunay-based tetrahedralization algorithm that generates mesh with good geometric properties. We define a linear nodal basis function that is 0 at all vertices of the mesh, except has value of 1 at one vertex . Note the boundary value equations are vector valued, so we compose the same scalar valued nodal basis function for each component of the vector field. Therefore, we arrive at $3n$ linear basis that form a finite dimensional subspace of $\sV$,
 \[
-    \min_{\bu\in \BH} \quad
-        \int_{\Omega} \bC \bepsilon(\bu) : \bepsilon(\bu) d\bx 
-      - 2\int_{\Omega} \bf \cdot\bu d\bx
+    \sV_{3n} = \text{span} \pc{
+        \varphi_1, \cdots, \varphi_{3n}
+    }
 \]
- 
+The variational formulation over the discretized domain is then as follows,
+\[
+    \min_{ \bd\in \R^{3n}} \;\; \sJ_{3n}(\bd)
+        \quad\text{ where }\quad
+        \sJ_{3n}(\bd) := \sJ(\bu) = 
+        \sum_{\Omega^e \in \sT} \pb{
+            \frac{1}{2}\int_{\Omega^e} \bC \bepsilon(\bu) : \bepsilon(\bu) d\bx 
+            - \int_{\Omega^e} \bf \cdot\bu d\bx
+        }
+\]
+where $\bd\in\R^{3n}$ are coefficients to linear nodal basis functions and could be interpreted as displacements in 3 coordinate directions at each vertex of the mesh. The displacement field $\bu$ and coefficient $\bd$ are related as follows in the above equation,
+\[
+    \bu = 
+    \begin{pmatrix}
+        \sum_{i=1}^n \xi_i \varphi_i \\
+        \sum_{i=1}^n \eta_i \varphi_i \\
+        \sum_{i=1}^n \zeta_i \varphi_i \\
+    \end{pmatrix}
+    =
+    \begin{bmatrix}
+        \varphi_1 & 0 & 0 & \varphi_2 & 0 & 0 & \cdots & \varphi_{n} & 0 & 0 \\
+        0 & \varphi_1 & 0 & 0 & \varphi_2 & 0 & \cdots & 0 & \varphi_{n} & 0 \\
+        0 & 0 & \varphi_1 & 0 & 0 & \varphi_2 & \cdots & 0 & 0 & \varphi_{n} \\
+    \end{bmatrix}
+    \begin{bmatrix}
+        \xi_1 \\ \eta_1 \\ \zeta_1 \\
+        \xi_2 \\ \eta_2 \\ \zeta_2 \\
+        \vdots \\
+        \xi_{n} \\ \eta_{n} \\ \zeta_{n} \\
+    \end{bmatrix}
+    = \bphi \bd
+\]
+where $\bphi_{ij}$ is nodal basis for $i$-component of vector field at vertex $j$. Here, we impose a node-based ordering, in particularly, we can write
+\[
+    \bd^e = 
+    \begin{pmatrix}
+        &&
+        \smash[b]{ \underbrace{\begin{matrix} \xi_1 & \eta_1 & \zeta_1 & \end{matrix}}_{\bd^e_1} } & 
+        \smash[b]{ \underbrace{\begin{matrix} \xi_2 & \eta_2 & \zeta_2 & \end{matrix}}_{\bd^e_2} } & 
+        \smash[b]{ \underbrace{\begin{matrix} \xi_3 & \eta_3 & \zeta_3 & \end{matrix}}_{\bd^e_3} } & 
+        \smash[b]{ \underbrace{\begin{matrix} \xi_4 & \eta_4 & \zeta_4 & \end{matrix}}_{\bd^e_4} } & 
+    \end{pmatrix} \\
+\]
+$ $\\
+as the nodal displacements at each vertex of a single tetrahedron $\Omega^e \in\sT$. It important to note that when integrating over the volume of an element, the nodal basis is a function of the variable of integration $\bx$, while the coefficients $\bd$ is not a function of $\bx$, i.e. 
+\[
+    \bu^e(\bx) = \bphi^e(\bx) \bd^e
+\]
+where 
+\[
+    \bphi^e(\bx) =    
+    \begin{bmatrix}
+        \varphi_1(\bx) & 0 & 0 & \cdots & \varphi_4(\bx) & 0 & 0 \\
+        0 & \varphi_1(\bx) & 0 & \cdots & 0 & \varphi_4(\bx) & 0 \\
+        0 & 0 & \varphi_1(\bx) & \cdots & 0 & 0 & \varphi_4(\bx) \\
+    \end{bmatrix}
+    \quad\quad
+    \bd^e = 
+    \begin{bmatrix}
+        \xi_1 \\ \eta_1 \\ \zeta_1 \\
+        \xi_2 \\ \eta_2 \\ \zeta_2 \\
+        \xi_3 \\ \eta_3 \\ \zeta_3 \\
+        \xi_4 \\ \eta_4 \\ \zeta_4 \\
+    \end{bmatrix}
+\]
+
+\subsection{Element Stiffness Matrix}
+
+We will proceed with derivation of solution for the variational formulation of the problem on the discretized domain. In practice, it is more convenient to represent integrands in matrix notation. For a single tetrahedron,
+\[
+    \frac{1}{2}\int_{\Omega^e} \bC \bepsilon(\bu^e) : \bepsilon(\bu^e) d\bx 
+    - \int_{\Omega^e} \bf \cdot\bu^e d\bx
+    =
+    \frac{1}{2} \int_{\Omega^e} \bepsilon(\bu^e)^T \bC \epsilon(\bu^e) d\bx
+    - \int_{\Omega^e} \bf^T \bu^e d\bx
+\]
+Evaluating linear basis function for any $\bx = (x,y,z)$ over a tetrahedron with 4 vertices $\bx_i$ for $i=1,\cdots,4$ is equivalent to determining the barycentric coordinate of $\bx$. This is straight-forward to compute by using the inverse of the following linear relationship, 
+\[
+    \begin{bmatrix}
+        1 \\ x \\ y \\ z 
+    \end{bmatrix}
+    = 
+    \begin{bmatrix}
+        1 & 1 & 1 & 1 \\
+        x_1 & x_2 & x_3 & x_4 \\
+        y_1 & y_2 & y_3 & y_4 \\
+        z_1 & z_2 & z_3 & z_4 \\
+    \end{bmatrix}
+    \begin{bmatrix}
+        \varphi_1 \\ \varphi_2 \\ \varphi_3 \\ \varphi_4
+    \end{bmatrix}
+\]
+Linear operators $\bC$ and $\epsilon$ can be represented using matrices as follows 
+\[
+    \bepsilon = 
+    \begin{bmatrix}
+        \partial / \partial x & 0 & 0 \\
+        0 & \partial / \partial x & 0 \\
+        0 & 0 & \partial / \partial x \\
+        \partial / \partial y & \partial /\partial x & 0 \\
+        0 & \partial / \partial z & \partial /\partial y \\
+        \partial / \partial z & 0 & \partial /\partial x \\
+    \end{bmatrix}
+    \quad\quad
+    \bC = 
+    \begin{bmatrix}
+        \lambda + 2\mu & \lambda & \lambda & 0 & 0 & 0 \\
+        \lambda & \lambda + 2\mu & \lambda & 0 & 0 & 0 \\
+        \lambda & \lambda & \lambda + 2\mu & 0 & 0 & 0 \\
+        0 & 0 & 0 & \mu & 0 & 0 \\
+        0 & 0 & 0 & 0 & \mu & 0 \\
+        0 & 0 & 0 & 0 & 0 & \mu \\
+    \end{bmatrix}
+\]
+To simplify the expression, we want to write $\bepsilon(\bu^e)$ with respect to $\bd^e$. We can define 
+\[
+    \bB^e
+    = \bepsilon \bphi^e
+    = 
+    \begin{bmatrix}
+    \bB_1 & \bB_2 & \bB_3 & \bB_4 
+    \end{bmatrix}
+    \quad\quad
+    \bB_i = 
+    \begin{bmatrix}
+        \partial \varphi_i / \partial x & 0 & 0 \\
+        0 & \partial \varphi_i / \partial x & 0 \\
+        0 & 0 & \partial \varphi_i / \partial x \\
+        \partial \varphi_i / \partial y & \partial \varphi_i /\partial x & 0 \\
+        0 & \partial \varphi_i / \partial z & \varphi_i \partial /\partial y \\
+        \partial \varphi_i/ \partial z & 0 & \partial \varphi_i /\partial x \\
+    \end{bmatrix}
+\]
+such that 
+\[
+    \bepsilon(\bu^e) = \bepsilon \bphi^e \bd^e = \bB^e \bd^e
+\]
+Therefore the functional reduces to 
+\begin{align*}
+    \frac{1}{2} \int_{\Omega^e} \bepsilon(\bu^e)^T \bC \epsilon(\bu^e) d\bx
+    - \int_{\Omega^e} \bf^T \bu^e d\bx
+    &= 
+    \frac{1}{2} \int_{\Omega^e} (\bB^e\bd^e)^T \bC (\bB^e\bd^e) d\bx
+    - \int_{\Omega^e} \bf^T \bphi^e\bd^e d\bx \\
+    &=
+    \frac{1}{2} (\bd^e)^T \p{\int_{\Omega^e} (\bB^e)^T \bC \bB^e d\bx} \bd^e
+    - \p{ \int_{\Omega^e} \bf^T \bphi^e d\bx } \bd^e \\
+    &= \frac{1}{2} (\bd^e)^T \bK^e \bd^e
+    - \bF^e \bd^e
+\end{align*}
+where $\bK^e \in \R^{12x12}$ is termed \textit{element stiffness matrix},
+\[
+    \bK^e = \int_{\Omega^e} (\bB^e)^T \bC \bB^e d\bx
+    \quad\quad
+    \bF^e = \int_{\Omega^e} \bf^T \bphi^e d\bx
+\]
+Tetrahedron elements has the nice property that $\bB^e$ is a constant function of $\bx$. Therefore, $\bK^e = (\bB^e)^T \bC \bB^e |\Omega^e|$ is constant inside the element, where $|\cdot|$ denotes \textit{volume of}. In general, this is not true. We need to resort to 3-dimensional Gaussian quadrature to numerically integrate the integral for elements like regular hexahedron.
+
+
+\subsection{Global Stiffness Matrix}
+
+Now return to the original functional,
+\[
+    \sJ_{3n}(\bd) = 
+        \sum_{\Omega^e \in \sT} \pb{
+            \frac{1}{2} (\bd^e)^T \bK^e \bd^e
+                - \bF^e \bd^e
+        }
+        =
+        \frac{1}{2} \bd^T \bK \bd - \bd^T \bF
+\]
+for some $\bK\in\R^{3nx3n}$, $\bF\in\R^{3nx1}$. The last step is always possible, as $\sJ_{3n}$ is quadratic with respect to $\bd$. Here $\bK$ is termed \textit{global stiffness matrix}. In practice, we need to keep a consistent indexing (node-based ordring) to map the contribution of element stiffness matrix $\bK^e$ to corresponding location of global stiffness matrix $\bK$. In spirit of Ritz Method, we set the gradient of $\sJ_{3n}$ to $\mathbf{0}$,
+\[
+    \nabla_{\bd} \p{\frac{1}{2} \bd^T \bK \bd - \bd^T \bF} = \mathbf{0}
+    \quad\Rightarrow\quad
+    \bK \bd = \bF
+\]
+Solving the boundary value problem is then reduced to solving a linear system $\bK \bd = \bF$.
+
 
 
 \newpage
 \printbibliography
-
-
 
 \end{document}
