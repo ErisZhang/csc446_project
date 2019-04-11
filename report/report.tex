@@ -107,6 +107,7 @@ Here, we lay down simplifying assumptions for our problem.
         \quad \quad \rightarrow \quad \quad
         \bsigma = 2\mu\bepsilon + \lambda \tr{\bepsilon} \bI
     \]
+    Also note that the stiffness tensor is symmetric, i.e. $\bC_{ijkl} = \bC_{klij}$. This is true even for anisotropic materials.
     \item \bheading{Static equilibrium} We are only interested in modeling static objects. With this assumption, we obtain a simpler formula from Newton's second law on conservation of linear and angular momentum.
     \[
         \nabla\cdot\bsigma + \bf = \rho \ddot{\bu}
@@ -168,9 +169,9 @@ For our purposes, it is easier to eliminate stress and strain to seek a set of e
         &= \bf & \bx\in\Omega \\
     \bu &= 0   &\bx\in\Gamma
 \end{align*}
-where $\Omega\in\R^3$ is a closed and bounded region occupied by a linear elastic solid, with boundary $\partial\Omega$. $\Gamma \subset \partial\Omega$ is part of boundary that the object cannot be displaced. $\sV := \pc{\bv\in H(\Omega,\R^3) \mid \bv|_{\Gamma} = \mathbf{0}}$ is a first Sobolev space satisfying the zero boundary condition on $\Gamma$. $\bepsilon$ is a linear differential operator over the displacement field $\bu$, while $\bC$ is a linear operator over the the strain field $\bepsilon(\bu)$, which is positive definite for linear elastic isotropic material. It is easy to see that $\sL := -\nabla \cdot \p{\bC \bepsilon(\cdot)}$ is a linear differential operator.
+where $\Omega\in\R^3$ is a closed and bounded region occupied by a linear elastic solid, with boundary $\partial\Omega$. $\Gamma \subset \partial\Omega$ is part of boundary that the object cannot be displaced. $\sV := \pc{\bv\in H(\Omega,\R^3) \mid \bv|_{\Gamma} = \mathbf{0}}$ is a first Sobolev space satisfying the zero boundary condition on $\Gamma$. $\bepsilon$ is a linear differential operator over the displacement field $\bu$, while $\bC$ is a linear operator over the the strain field $\bepsilon(\bu)$, which is positive definite for linear elastic isotropic material. It is easy to see that $\sL := -\nabla \cdot \p{\bC \bepsilon(\cdot)}$ is a linear differential operator. 
 
-\section{Finite Element Formulation}
+\section{Finite Elements}
 It is conventional to use finite element method to solve linear elasticity equations for 3-dimensional objects with complex geometry. We will formulate the boundary value problem in both the weak and variational form. The two formulations are equivalent in our setup. We will then discuss computer implementation strategies on tetrahedron elements, and briefly on regular hexahedron elements.
 
 \subsection{Weak Form}
@@ -187,14 +188,9 @@ for all $\bv \in\sV$. The left hand side is obtained via Green's first identity 
 \]
 where $\inner{\cdot}{\cdot}$ is $L^2$ norm over $\Omega$. 
 
-% We can rewrite the Galerkin's Equations as
-% \[
-%     \ta(\bu,\bu_k) = \inner{\bf}{\bu_k}
-% \]
-% for $k=1,\cdots,m$.
 
 \subsection{Variational Form}
-By theorem 9.1 in~\cite{iserles_2009}, $\sL \bu = \bf$ is the Euler-Lagrange equation of following variational problem
+By theorem 9.1 in~\cite{iserles_2009} and the following proposition, $\sL \bu = \bf$ is the Euler-Lagrange equation of following variational problem
 \[
     \sJ(\bu) := \ta(\bu,\bu) - 2\inner{\bf}{\bu}
 \]
@@ -206,8 +202,7 @@ where $\sJ: \sV\to \R$ is a functional and $\bu\in\sV$. The theorem also guarant
         \underbrace{\frac{1}{2}\int_{\Omega} \bC \bepsilon(\bu) : \bepsilon(\bu) d\bx }_\text{potential energy}
       - \underbrace{\int_{\Omega} \bf \cdot\bu d\bx}_\text{work}
 \]
-This amounts to applying the principle of least work to mechanical systems. Simply, we are minimizing the internal potential energy and work done by external force (e.g. gravity) on the object.
-
+This amounts to applying the principle of least work to mechanical systems. Simply, we are minimizing the internal potential energy and work done by external force (e.g. gravity) on the object. 
 
 \subsection{Discretization}
 
@@ -394,7 +389,64 @@ for some $\bK\in\R^{3nx3n}$, $\bF\in\R^{3nx1}$. The last step is always possible
     \quad\Rightarrow\quad
     \bK \bd = \bF
 \]
-Solving the boundary value problem is then reduced to solving a linear system $\bK \bd = \bF$.
+Solving the boundary value problem is then reduced to solving a linear system $\bK \bd = \bF$. In general, $\bK$ is a symmetric positive definite matrix.
+
+\subsection{Dirichlet Boundary Condition}
+
+We can enforce the dirichlet boundary condition, by considering a subset of linear equations. Specifically, let $\bI = \bD + \tilde{\bD}$, where $\bD_{ii} = 1$ for all $i$ corresponding to vertices at Dirichlet boundary. We can rewrite the system of linear equations as follows,
+\begin{align*}
+    \bK(\bD + \tilde{\bD}) \bd 
+        &= \bF \\
+    \bK \tilde{\bD} \bd 
+        &= \bF - \bK\bD \bx \\
+    \tilde{\bD} \bK \tilde{\bD} \bd 
+        &= \tilde{\bD} \bF - \tilde{\bD} \bK\bD \bx
+\end{align*}
+where $\tilde{\bD} \bK\bD \bx = \mathbf{0}$, so we have
+\[
+    \tilde{\bD} \bK \tilde{\bD}\bd
+    = \tilde{\bD} \bF
+\]
+Effectively, we zero-ed out entries on both left and right hand side of the linear system at indices corresponding to vertices on Dirichlet boundary. We can collapse the matrix $\bK$ by removing zero rows/columns and obtain a matrix that remains to be symmetric positive definite.
+
+\section{Iterative Methods} 
+
+We are left with the task of solving the linear system
+\[
+    \bA\bx = \bb
+\]
+where $\bA$ is a sparse symmetric positive definite matrix. Cholesky decomposition is the standard method to solve a symmetric positive definite linear system. However, exact solution is unnecessary for the purpose of visualization. In this section, we will explore a few iterative method for computing approximate solutions that are \textit{good enough}.
+
+\subsection{Stationary Iteration}
+
+Consider the standard splitting of $\bA$,
+\[
+    \bA = \bD - \bL - \bU
+\]
+where $\bD,\bL,\bU$ are the diagonal, negative of strictly lower-triangular, and negative of strictly upper-triangular parts of $\bA$. We consider a linear one-step stationary scheme
+\[
+    \bx^{(k+1)} = \bH \bx^{(k)} + \bv
+\]
+for some $\bH,\bv$. Specifically, we are interested in stationary methods that are convergent for symmetric positive definite $\bA$. Initially, we started with Jacobi's method,
+\[
+    \bH = \bP^{-1} (\bL+\bU) = \bI - \bD^{-1} \bA
+    \quad\quad
+    \bv = \bP^{-1}\bb
+\]
+and element-wise iteration
+\[
+    \bx^{(k+1)}_i = \frac{1}{a_{ii}} \p{
+        b_1 - \sum_{j\neq i} a_{ij} \bx^{(k)}_j
+    }    
+\]
+Jacobi's iteration is embarrassingly parrallel, as $\bx^{k+1}$ is only dependent upon previous $\bx^{k}$ and so every iteration can be fully parallelised. However, positive definiteness of $\bA$ is not sufficient for convergence. In general, linear elasticity problem does not satisfy $\rho(\bH) < 1$, which is an equivalent condition for convergence given nonsingular $\bA$,$\bP$.~\cite{iserles_2009} Instead, we used weighted Jacobi, 
+\[
+    \bH = \bI - \omega \bD^{-1} \bA
+    \bx^{(k+1)}_i = \frac{1}{a_{ii}} \p{
+        b_1 - \sum_{j\neq i} a_{ij} \bx^{(k)}_j
+    }
+\]
+which is convergent given symmetric positive definite $\bA$ 
 
 
 
