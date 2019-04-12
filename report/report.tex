@@ -6,7 +6,7 @@
 \usepackage{subcaption}
 \usepackage{titlepic}
 \usepackage{graphicx}
-\graphicspath{{../data/imgs/}}
+\graphicspath{{../data/imgs/}{./assets}}
 \usepackage{hyperref}
 \hypersetup{colorlinks=true, linktoc=all, linkcolor=blue, citecolor=blue}
 \usepackage[backend=biber,sorting=none]{biblatex}
@@ -95,6 +95,14 @@ Continuum mechanics deals with behavior of material modeled as a continuous mass
 
 
 \subsection{Problem Assumptions}
+
+
+\begin{figure}[!htbp]
+    \begin{center}
+        \includegraphics[width=3in]{screenshots/strain_on_hex}
+        \caption{Strain tensor}
+    \end{center}
+\end{figure}
 
 Here, we lay down simplifying assumptions for our problem.
 \begin{enumerate}
@@ -283,6 +291,12 @@ where
         \xi_4 \\ \eta_4 \\ \zeta_4 \\
     \end{bmatrix}
 \]
+\begin{figure}[!htbp]
+\begin{center}
+    \includegraphics[width=3in]{screenshots/linear_tet_basis}
+    \caption{Visualization of $\varphi_1$ over a tetrahedron element}
+\end{center}
+\end{figure}
 
 \subsection{Element Stiffness Matrix}
 
@@ -338,10 +352,10 @@ To simplify the expression, we want to write $\bepsilon(\bu^e)$ with respect to 
     = \bepsilon \bphi^e
     = 
     \begin{bmatrix}
-    \bB_1 & \bB_2 & \bB_3 & \bB_4 
+    \bB^e_1 & \bB^e_2 & \bB^e_3 & \bB^e_4 
     \end{bmatrix}
     \quad\quad
-    \bB_i = 
+    \bB^e_i = 
     \begin{bmatrix}
         \partial \varphi_i / \partial x & 0 & 0 \\
         0 & \partial \varphi_i / \partial x & 0 \\
@@ -396,6 +410,76 @@ for some $\bK\in\R^{3nx3n}$, $\bF\in\R^{3nx1}$. The last step is always possible
     \bK \bd = \bF
 \]
 Solving the boundary value problem is then reduced to solving a linear system $\bK \bd = \bF$. In general, $\bK$ is a symmetric positive definite matrix.
+
+
+\subsection{Linear Hexahedron Element}
+
+\begin{figure}[!htbp]
+    \begin{center}
+        \includegraphics[width=4in]{screenshots/hex_element_cov}
+        \caption{Change of coordinate system on hexahedron element}
+    \end{center}
+\end{figure}
+
+Apart from tetrahedral elements, we also experimented with regular hexahedral elements with linear basis functions. Specifically, regular hexahedronal elements are equal-sized unit cubes that are perfectly aligned with a cartesian grid, i.e. voxel-based discretization. For each hexahedron element, there are 8 nodes numbered in a counter-clockwise manner. To makes it easier to construct the basis functions and to evaluate the matrix integral, we define a natural coordinate system $(\xi,\eta,\zeta)$ with its origin at the centre of the transformed cube. Unlike tetrahedral elements, the basis functions are chosen to be tri-linear functions,
+\[
+    \varphi_i = \frac{1}{8} (1+\xi\xi_{i})(1+\eta\eta_{i})(1+\zeta\zeta_{i})
+\]
+where $(\xi_{i},\eta_{i},\zeta_{i})$ denotes the natural coordinates of each node $i$. Similar to tetrahedrons, the strain matrix $\bB$ could be written as
+\[
+    \bB^e
+    = 
+    \begin{bmatrix}
+    \bB_1^e & \bB_2^e & \bB_3^e & \bB_4^e & \bB_5^e & \bB_6^e & \bB_7^e & \bB_8^e
+    \end{bmatrix}
+    \quad\quad
+    \bB_i^e = 
+    \begin{bmatrix}
+        \partial \varphi_i / \partial x & 0 & 0 \\
+        0 & \partial \varphi_i / \partial x & 0 \\
+        0 & 0 & \partial \varphi_i / \partial x \\
+        \partial \varphi_i / \partial y & \partial \varphi_i /\partial x & 0 \\
+        0 & \partial \varphi_i / \partial z & \varphi_i \partial /\partial y \\
+        \partial \varphi_i/ \partial z & 0 & \partial \varphi_i /\partial x \\
+    \end{bmatrix}
+\]
+However, since the basis functions are defined in terms of the natural coordinates, the chain rule of partial differentiation needs to be used to obtain the derivatives with respect to global coordinates,
+\[
+    \begin{bmatrix}
+    \partial \varphi_i / \partial x \\
+    \partial \varphi_i / \partial y \\
+    \partial \varphi_i / \partial z \\
+    \end{bmatrix}
+    =
+    \bJ^{-1}
+    \begin{bmatrix}
+        \partial \varphi_i / \partial \xi \\
+        \partial \varphi_i / \partial \eta \\
+        \partial \varphi_i / \partial \zeta \\
+    \end{bmatrix}
+    \quad\quad
+    \text{where}\quad
+    \bJ = 
+    \begin{bmatrix}
+        \Sigma_{j=1}^{8} x_{j} \partial \varphi_j / \partial \xi & \Sigma_{j=1}^{8} y_{j} \partial \varphi_j / \partial \xi & \Sigma_{j=1}^{8} z_{j} \partial \varphi_j / \partial \xi \\
+        \Sigma_{j=1}^{8} x_{j} \partial \varphi_j / \partial \eta & \Sigma_{j=1}^{8} y_{j} \partial \varphi_j / \partial \eta & \Sigma_{j=1}^{8} z_{j} \partial \varphi_j / \partial \eta \\
+        \Sigma_{j=1}^{8} x_{j} \partial \varphi_j / \partial \zeta & \Sigma_{j=1}^{8} y_{j} \partial \varphi_j / \partial \zeta & \Sigma_{j=1}^{8} z_{j} \partial \varphi_j / \partial \zeta \\
+    \end{bmatrix}
+\]
+Hence the element stiffness matrix for each voxel element is,
+\[
+    \bK^e = \int_{\Omega^e} (\bB^e)^T \bC \bB^e d\bx
+    =
+    \int_{-1}^{1}\int_{-1}^{1}\int_{-1}^{1} (\bB^e)^T \bC \bB^e \det{(\bJ)} d\xi d\eta d\zeta
+\]
+Note that the strain matrix $\bB^{e}$ is a function of $\xi$, $\eta$ and $\zeta$ and matrix $C$ is the material constant. Since the integral cannot be easily solved analytically, we used a gaussian cubature for numerical integration
+\[
+    \bK^e =
+    = \int_{-1}^{1}\int_{-1}^{1}\int_{-1}^{1} f(\xi,\eta,\zeta) d\xi d\eta d\zeta
+    = \sum_{i=1}^{N}\sum_{j=1}^{N}\sum_{k=1}^{N}\omega_{i}\omega_{j}\omega_{k}f(\xi_i,\eta_j,\zeta_k)
+\]
+Most importantly, since all the voxels have exactly the same shape, only a single pre-computed element stiffness matirx is needed, which greatly reduces the memory requirements and computation time. This harmonizes well with matrix-free iterative methods.
+
 
 \subsection{Dirichlet Boundary Condition}
 
@@ -612,10 +696,109 @@ In Figure~\ref{fig:5}, we visualized the effective stress field generated using 
     \end{center}
 \end{figure}
 
+\subsection{Visualizing Stress On Hexahedron}
+Moreover, the most significant benefit obtained from using equal-sized voxels is to construct element stiffness matrix $\bK^e$ once and avoid the assembly of global stiffness matrix. To generate comparable visualizations effectively, our strategy is to first conservatively voxelize the original tetdrahedron mesh, where each point (not just vertex) on the tetrahedron mesh is contained inside the voxelization, and then compute and map the nodal displacements on each grid points back to the input mesh in terms of trilinear interpolation. In Figure~\ref{fig:6}, we experimented with voxelizations with different resolutions and their effect on stress field visualization. We observed that for a moderately sided voxel grid $m=58$, the visualization is similar to the gold standard. However, we acknowledge that the stress field do look different from those generated using tetrahedron element.
+
+\begin{figure}[!htbp]
+    \begin{center}
+        $m=8$
+        \quad
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{hex/resized/archbridge_cage_1}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.35\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{hex/resized/archbridge_1}
+        \end{subfigure}\\ 
+
+        $m=18$
+        \quad
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{hex/resized/archbridge_cage_2}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.35\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{hex/resized/archbridge_2}
+        \end{subfigure}\\ 
+
+
+        $m=28$
+        \quad
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{hex/resized/archbridge_cage_3}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.35\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{hex/resized/archbridge_3}
+        \end{subfigure}
+    \end{center}
+
+        \begin{center}
+        $m=38$
+        \quad
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{hex/resized/archbridge_cage_4}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.35\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{hex/resized/archbridge_4}
+        \end{subfigure}
+    \end{center}
+
+        \begin{center}
+        $m=58$
+        \quad
+        \begin{subfigure}[b]{0.4\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{hex/resized/archbridge_cage_5}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.35\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{hex/resized/archbridge_5}
+        \end{subfigure}\\ 
+
+        \caption{\label{fig:6} von Mises' effective stress field generated from interpolated hexahedral nodal displacements with respect to voxel grid resolutions $m=8, 18, 28, 38, 58$, where     $m$ denotes the number of voxels in the bounding box along $x$ direction}
+    \end{center}
+\end{figure}
+
+
+\subsection{Supplementary Gallery}
+Visualization on different meshes is here~\ref{fig:7}!
+
+\begin{figure}[!htbp]
+    \begin{center}
+        \quad
+        \begin{subfigure}[b]{0.45\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{tet/resized/bunny_tiny_1}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.45\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{tet/resized/bb-bunny_tiny_1}
+        \end{subfigure}
+
+        \quad
+        \begin{subfigure}[b]{0.45\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{tet/resized/armadillo_1}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.45\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{tet/resized/dinosaur_1}
+        \end{subfigure}
+        \caption{\label{fig:7} Stress field visualization on different meshes}
+    \end{center}
+\end{figure}
+
+
 \section{Discussion \& Conclusion}
 
 We have demonstrated that even with the simpliest iterative method, we can achieve undistinguishable stress field visualization from direct solvers, in a few number of iterations. This is all achieved without exploring more sophisticated iterative methods like conjugated gradient, multigrid, etc. or hand-tuned preconditioners. Additionally, we have demonstrated how we could save memory and time cost associated with assembly of stiffness matrices $\bK$ with the help of regular hexahedron element. To conclude, matrix-free iterative methods over regular hexahedron elements have great potential in real-time linear elasticity simulation, especially for visualization purposes where \textit{good enough} approximate solutions can generate \textit{sensible} visualizations.
-However, there are complications along the way. For example, we need to experimentally determine the optimal parameter $\omega$ for both iterative method tested. Theories for finding optimal parameters have assumptions that linear leasticity simulation cannot make; So we had to resort to finding a good choice of $\omega$ experimentally via a simple grid search. Another complication comes with the use of trilinear interpolation to map stress field back from voxel grids to the tetrahedron mesh. We noticed obvious artifacts when the resolution of the voxel grids is coarse.
+However, there are complications along the way. For example, we need to experimentally determine the optimal parameter $\omega$ for both iterative method tested. Theories for finding optimal parameters have assumptions that linear leasticity simulation cannot make; So we had to resort to finding a good choice of $\omega$ experimentally via a simple grid search. Another complication comes with the use of trilinear interpolation to map stress field back from voxel grids to tetrahedron mesh. We noticed obvious artifacts when the resolution of the voxel grids is coarse.
 
 \section{Future Directions}
 
@@ -626,7 +809,6 @@ Given the limited amount of time to undertake this project, there is still so mu
     \item Explore different interpolation schemes for mapping stress field back from voxel grids to tetrahedron mesh
     \item Implement linear solvers on GPU for real-time simulation
 \end{enumerate}
-
 
 \newpage
 \printbibliography
