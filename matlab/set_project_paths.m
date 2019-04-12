@@ -13,5 +13,6 @@ function set_project_paths()
     addpath('linelas');
     addpath('solvers');
     addpath('utils');
+    addpath('scripts');
 
 end

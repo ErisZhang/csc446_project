@@ -29,6 +29,7 @@ function [U,K,f,strain,stress,VM,Bs,C,data] = linelas3d_tetrahedron(V,Tet,b,load
     mu = 0.45;
     linearsolver = false;
     saveon = {};
+    data = struct('xks',[],'rks',[]);
 
     % Map of parameter names to variable names
     params_to_variables = containers.Map( ...
@@ -145,7 +146,7 @@ function [U,K,f,strain,stress,VM,Bs,C,data] = linelas3d_tetrahedron(V,Tet,b,load
 
     tic;
     if islogical(linearsolver)
-        u = K/f;
+        u = K\f;
     else
         [u,data.xks,data.rks] = linearsolver(K,f);
     end

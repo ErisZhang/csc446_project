@@ -14,3 +14,8 @@
 
 % matlab 
 *.m~
+
+% generated file
+data/outputs/*
+data/models/*
+
