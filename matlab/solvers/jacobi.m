@@ -89,7 +89,7 @@ function [x,varargout] = jacobis(A,b,x0,max_iter,tol,omega,saveon)
                (1-omega) * xp(i);
         end
 
-        r = (x-xp).*Dinv;
+        r = b - A*x;
 
         if ~isempty(saveon) && saveoni <= max(size(saveon)) && saveon(saveoni) == it
             xks(:,saveoni) = x;
@@ -134,7 +134,8 @@ function [x,varargout] = jacobid(A,b,x0,max_iter,tol,saveon)
             x(i) = Dinv(i) * ( -A(i,:)*x + A(i,i)*x(i) + b(i) );
         end
 
-        r = (x-xp).*Dinv;
+        r = b - A*x;
+        % r = (x-xp).*Dinv;
 
         if ~isempty(saveon) && saveoni <= max(size(saveon)) && saveon(saveoni) == it
             xks(:,saveoni) = x;

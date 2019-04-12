@@ -1,7 +1,9 @@
 \documentclass[11pt,titlepage]{article}
 \input{\string~/.macros}
-\usepackage[a4paper, total={6in, 8in}]{geometry}   % margin=1in
+\usepackage[a4paper, total={6.5in, 8.5in}]{geometry}   % margin=1in
 \usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\graphicspath{{../data/imgs/}}
 \usepackage{hyperref}
 \hypersetup{colorlinks=true, linktoc=all, linkcolor=blue, citecolor=blue}
 \usepackage[backend=biber,sorting=none]{biblatex}
@@ -474,7 +476,57 @@ The goal of this section is to experimentally investigate the performance of the
     \item FEM solver on linear tetrahedron and linear regular hexahedron
     \item $\omega$-Jacobi and SOR linear solvers for sparse matrices. 
 \end{enumerate}
-The solution to the linear system $\bK \bu = \bF$ can be interpreted as a discrete displacement field sampled over vertices of the mesh. From the displacement field, we acn compute the corresponding strain, stress, and von Mises' stress fields over the vertices. To visualize the result, we interpolate the discrete vector fields over the surface of the mesh using barycentric interpolation. To perform valid numerical comparisons, we used \texttt{mldivide} (the backslash) to solve for displacements and stress fields, which act as the ground truth for comparing with the iterative methods. 
+The solution to the linear system $\bK \bu = \bF$ can be interpreted as a discrete displacement field sampled over vertices of the mesh. From the displacement field, we can compute the corresponding strain, stress, and von Mises' stress fields over the vertices. To visualize the result, we interpolate the discrete vector fields over the surface of the mesh using barycentric interpolation. 
+
+\subsection{Mesh}
+
+We used a few mesh of interesting shapes and geometries to perform numerical experiments. Mainly, we used \texttt{archbridge} with a fixed number of vertices (1118) and tetrahedrons (3221).
+
+
+\subsection{Convergence}
+
+We use relative residual to measure convergence. We define residual at $k$-th iteration to be,
+\[
+    \br^{(k)} = \bb - \bA \bx^{(k)}
+\]
+The relative residual is therefore $\norm{\br^{(k)}} / \norm{\br^{(0)}}$, where $\br^{(0)} = \bb$ if initial guess is a zero vector. In Figure~\ref{fig:1}, we experimentally measured the convergence of $\omega$-Jacobi with respect to different values of weights $\omega$. We noticed that the iterations diverges for $\omega=0.6,0.8,1$, while converges for $\omega\leq 0.4$. This is expected, as value of $\omega$ gets smaller, the eigenvalues of Jacobi's iteration matrix $\bH$ gets closeer to 1. We choose the best performing parameter $\omega=0.4$ for subsequent experiments. In Figure~\ref{fig:2}, we experimentally measured the convergence of SOR with respect to different values of relaxation factor $\omega$. As expected, every choice of $\omega$ leads to a convergent sequence of iterations. Although $\omega=1.8$ converges faster in the long run, $\omega=1.6$ converges more quickly for iterations less than approximately 500 iterations. As we are interested in using as few iterations for visualizing stress, we will use $\omega=1.6$ for subsequent experiments.
+
+
+\begin{figure}[!htbp]
+\begin{center}
+    \includegraphics[width=\textwidth]{archbridge_tiny_jacobi_relres_vs_iters}
+    \includegraphics[width=\textwidth]{archbridge_tiny_jacobi_logrelres_vs_iters_full}
+    \caption{\label{fig:1} $\omega$-Jacobi's relative residual (top) and log relative residual (bottom) plotted as a function of number of iterations. Each line represent Jacobi's Method with different weights}
+\end{center}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \begin{center}
+        \includegraphics[width=\textwidth]{archbridge_tiny_sor_relres_vs_iters}
+        \includegraphics[width=\textwidth]{archbridge_tiny_sor_logrelres_vs_iters}
+        \caption{\label{fig:2} SOR's relative residual (top) and log relative residual (bottom) plotted as a function of number of iterations. Each line represent SOR iteration with different weights}
+    \end{center}
+\end{figure}
+
+
+\subsection{Approximate Error}
+
+We define error at $k$-th iteration to be, 
+\[
+    \be^{(k)} = \tilde{\bx} - \bx^{(k)}
+\]
+where $\tilde{\bx}$ is the real solution of the system. Although $\tilde{\bx}$ is not known, we consider solution resulting from direct LDL/Cholesky solver (\texttt{mldivide}) as the ground truth, and use it in place of $\tilde{\bx}$ to determine an estimate of true error at each iteration. In Figure~\ref{fig:3}, we quantified and compared the performance of $\omega$-Jacobi ($\omega=0.4$) and SOR ($\omega=1.6$) by computing the error norm $\norm{\be}$. We observed that SOR, with a good choice of $\omega$, is much superior to $\omega$-Jacobi.
+
+\begin{figure}[!htbp]
+    \begin{center}
+        \includegraphics[width=\textwidth]{archbridge_tiny_errornorm.png}
+        \includegraphics[width=\textwidth]{archbridge_tiny_logerrornorm.png}
+        \caption{\label{fig:3} Error (top) and log error (bottom) plotted as a function of number of iterations for different iterative methods}
+    \end{center}
+\end{figure}
+
+\subsection{Visualization}
+
 
 
 % data.

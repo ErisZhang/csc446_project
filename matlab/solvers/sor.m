@@ -75,7 +75,7 @@ function [x,varargout] = sors(A,b,x0,max_iter,tol,omega,saveon)
         xp = x;
 
         if mod(it, 50) == 0
-            fprintf('(SOR) %d/%d:\t%.5e (rel residual)\n',it,max_iter,norm(r)/normb);
+            fprintf('(SOR) %d/%d:\t%.5e (rel residual)\n', it,max_iter,norm(r)/normb);
         end
 
         for i = 1:n
@@ -84,7 +84,7 @@ function [x,varargout] = sors(A,b,x0,max_iter,tol,omega,saveon)
                 (1-omega) * xp(i);
         end
 
-        r = (x-xp).*Dinv;
+        r = b - A*x;
 
         if ~isempty(saveon) && saveoni <= max(size(saveon)) && saveon(saveoni) == it
             xks(:,saveoni) = x;
@@ -148,7 +148,7 @@ function x = gaussseidels(A,b,x0,max_iter,tol)
             x(i) = Dinv(i) * ( -A(i,nnzi)*x(nnzi) + A(i,i)*x(i) + b(i) );
         end
 
-        r = (x-xp).*Dinv;
+        r = b - A*x;
 
         if norm(r)/normb <= tol
             return;
@@ -176,7 +176,7 @@ function x = gaussseideld(A,b,x0,max_iter,tol)
             x(i) = Dinv(i) * ( -A(i,:)*x + A(i,i)*x(i) + b(i) );
         end
 
-        r = (x-xp).*Dinv;
+        r = b - A*x;
     
         if norm(r)/normb <= tol
             return;
