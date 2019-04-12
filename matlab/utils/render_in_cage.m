@@ -51,7 +51,7 @@ function data = render_in_cage(V,F,CV,CF,varargin)
   
     blue = [0.0482,0.3651,0.8722];
   %   orange = [0.9, 0.4, 0.1];
-    vaa = [11 8];
+    vaa = [0 80];
     l_position = [0.3 -0.3 0.8];
     ground = [];
     BB = [];
@@ -154,7 +154,7 @@ function data = render_in_cage(V,F,CV,CF,varargin)
     guarded_delete(data.l);
     data.l = light('Position',l_position,'Style','infinite');
     guarded_delete(data.s);
-    data.s = add_shadow(data.t,data.l, 'Ground',ground);
+    % data.s = add_shadow(data.t,data.l, 'Ground',ground);
   %   data.s.FaceColor = [1 1 1]*0.8;
   
     if color_intersections
@@ -174,7 +174,7 @@ function data = render_in_cage(V,F,CV,CF,varargin)
     end
   
     guarded_delete(data.sc);
-    data.sc = add_shadow(data.tc,data.l,'Ground',ground-[0 0 0 1e-3]);
+    % data.sc = add_shadow(data.tc,data.l,'Ground',ground-[0 0 0 1e-3]);
   %   data.sc.FaceColor = [1 1 1]*0.95;
   
     if isempty(data.A)

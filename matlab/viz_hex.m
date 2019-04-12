@@ -2,7 +2,7 @@ clear all;
 format shortG;
 set_project_paths();
 
-[V,T,F] = readMESH('../data/archbridge_tiny.mesh');
+[V,T,F] = readMESH('../data/bb-bunny_tiny.mesh');
 
 load = [0; -9.8; 0];
 
@@ -11,7 +11,7 @@ tol = 1e-20;
 omega =  1.5;
 saveon = (1:5:300)';
 
-[W,BC,DV,Q,r] = voxelize(V,F,40);
+[W,BC,DV,Q,r] = voxelize(V,F,20);
 
 [U_interp,strain_interp,stress_interp,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,T, ...
     'LinearSolver', @(A,b) sor(A,b,zeros(size(b)),max_iters,tol,'Omega',omega,'SaveOn',saveon));
