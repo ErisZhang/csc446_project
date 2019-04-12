@@ -9,7 +9,7 @@ b = boundary_vertices(V,2,0.02);
 b = reshape(3*repmat(b,3,1) - [2 1 0]',[],1); % vertex->node-wise
 
 
-[W,BC,DV,Q,r] = voxelize(V,F,60);
+[W,BC,DV,Q,r] = voxelize(V,F,20);
 
 
 [P,dof,b] = index_ijk_to_p(W);
