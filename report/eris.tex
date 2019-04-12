@@ -1,0 +1,65 @@
+
+
+\subsection{Linear Hexahedron Element}
+Apart from tetrahedral meshes, we also experiment with hexahedral elements with linear displacement functions. To be specific, all the elements are equal-sized unit cubes that are perfectly aligned with a cartesian grid e.g. voxel-based discretization.\\
+\\
+For each hexahedron element, there are 8 nodes numbered in a counter-clockwise manner. To makes it easier to construct the shape functions and to evaluate the matrix integration, we define a natural coordinate system $(\xi,\eta,\zeta)$ with its origin at the centre of the transformed cube. Unlike tetrahedral elements, the shape functions are chosen to be tri-linear functions,\\
+\[
+    \varphi_i = \frac{1}{8} (1+\xi\xi_{i})(1+\eta\eta_{i})(1+\zeta\zeta_{i})
+\]
+where $(\xi_{i},\eta_{i},\zeta_{i})$ denotes the natural coordinates of node $i$.\\
+Similar as tetrahedrons, the strain matrix $\bB$ could be written as\\
+\[
+    \bB^e
+    = 
+    \begin{bmatrix}
+    \bB_1^e & \bB_2^e & \bB_3^e & \bB_4^e & \bB_5^e & \bB_6^e & \bB_7^e & \bB_8^e
+    \end{bmatrix}
+    \quad\quad
+    \bB_i^e = 
+    \begin{bmatrix}
+        \partial \varphi_i / \partial x & 0 & 0 \\
+        0 & \partial \varphi_i / \partial x & 0 \\
+        0 & 0 & \partial \varphi_i / \partial x \\
+        \partial \varphi_i / \partial y & \partial \varphi_i /\partial x & 0 \\
+        0 & \partial \varphi_i / \partial z & \varphi_i \partial /\partial y \\
+        \partial \varphi_i/ \partial z & 0 & \partial \varphi_i /\partial x \\
+    \end{bmatrix}
+\]
+However, since the shape functions are defined in terms of the natural coordinates, the chain rule of partial differentiation needs to be used to obtain the derivatives with respect to global coordinates,
+\[
+    \begin{bmatrix}
+    \partial \varphi_i / \partial x \\
+    \partial \varphi_i / \partial y \\
+    \partial \varphi_i / \partial z \\
+    \end{bmatrix}
+    =
+    \bJ^{-1}
+    \begin{bmatrix}
+        \partial \varphi_i / \partial \xi \\
+        \partial \varphi_i / \partial \eta \\
+        \partial \varphi_i / \partial \zeta \\
+    \end{bmatrix}
+    \quad\quad
+    \text{where}\quad
+    \bJ = 
+    \begin{bmatrix}
+        \Sigma_{j=1}^{8} x_{j} \partial \varphi_j / \partial \xi & \Sigma_{j=1}^{8} y_{j} \partial \varphi_j / \partial \xi & \Sigma_{j=1}^{8} z_{j} \partial \varphi_j / \partial \xi \\
+        \Sigma_{j=1}^{8} x_{j} \partial \varphi_j / \partial \eta & \Sigma_{j=1}^{8} y_{j} \partial \varphi_j / \partial \eta & \Sigma_{j=1}^{8} z_{j} \partial \varphi_j / \partial \eta \\
+        \Sigma_{j=1}^{8} x_{j} \partial \varphi_j / \partial \zeta & \Sigma_{j=1}^{8} y_{j} \partial \varphi_j / \partial \zeta & \Sigma_{j=1}^{8} z_{j} \partial \varphi_j / \partial \zeta \\
+    \end{bmatrix}
+\]
+Hence the element stiffness matrix for each voxel is,\\
+\[
+    \bK^e = \int_{\Omega^e} (\bB^e)^T \bC \bB^e d\bx
+    =
+    \int_{-1}^{1}\int_{-1}^{1}\int_{-1}^{1} (\bB^e)^T \bC \bB^e \det{(\bJ)} d\xi d\eta d\zeta
+\]
+Note that the strain matrix $\bB^{e}$ is a function of $\xi$, $\eta$ and $\zeta$ and matrix $C$ is the material constant. Since it is hard to evaluate analytically, one of the numerical integration schemes, gaussian cubature, could be performed here,
+\[
+    \bK^e =
+    = \int_{-1}^{1}\int_{-1}^{1}\int_{-1}^{1} f(\xi,\eta,\zeta) d\xi d\eta d\zeta
+    = \sum_{i=1}^{N}\sum_{j=1}^{N}\sum_{k=1}^{N}\omega_{i}\omega_{j}\omega_{k}f(\xi_i,\eta_j,\zeta_k)
+\]
+Most importantly, since all the voxels have exactly the same shape, only a single pre-computed element stiffness matirx needs to be evaluated,
+which greatly reduces the memory requirements and computation time. Moreover, it is particularly useful when applying a matrix-free method that takes zero time for assembling the global stiffness matrix.
