@@ -13,7 +13,7 @@
 %       U           #Vx3 list of vertex displacements
 %       strain      #Vx6 stress field
 %       stress      #Vx6 strain field     
-function [U_interp,strain,stress,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,Tet,varargin)
+function [VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,Tet,varargin)
     assert(size(size(W),2) == 3,'Only 3D meshes are supported');
 
     young = 1.45e5;
@@ -129,27 +129,46 @@ function [U_interp,strain,stress,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV
     
     u = u.*len.*len./4;
 
-    [U_interp,strain,stress,VM] = compute_fields_hex(P,DV,V,Tet,C,u,r);
+    % [U_interp,strain,stress,VM] = compute_fields_hex(P,DV,V,Tet,C,u,r);
     %%%%%%%%%%%%%%%%%%%%%% compute stress, strain and von mises %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    % ij2p = zeros(24,1);
-    % % assembly procedure
-    % for i = 1:size(W,1)
-    %     for j = 1:size(W,2)
-    %         for k = 1:size(W,3)
-    %             if W(i,j,k) == 1
-    %                 Hexi = get_hex_index(P,Ve,i,j,k);
-    %                 ij2p(1:3:end) = 3*Hexi-2;
-    %                 ij2p(2:3:end) = 3*Hexi-1;
-    %                 ij2p(3:3:end) = 3*Hexi;
+    VM = zeros(dof/3,1);
 
-    %                 u_hex = u(ij2p);
-    %                 sample_points_strain = sample_points_B*u_hex;
+    ij2p = zeros(24,1);
+    % assembly procedure
+    for i = 1:size(W,1)
+        for j = 1:size(W,2)
+            for k = 1:size(W,3)
+                if W(i,j,k) == 1
+                    Hexi = get_hex_index(P,Ve,i,j,k);
+                    ij2p(1:3:end) = 3*Hexi-2;
+                    ij2p(2:3:end) = 3*Hexi-1;
+                    ij2p(3:3:end) = 3*Hexi;
 
-    %             end
-    %         end
-    %     end
-    % end
+                    u_hex = u(ij2p);
+                    sample_points_strain = sample_points_B*u_hex;
+
+                    % compute nodal stress
+                    vm = [];
+                    for m = 1:8
+                        node_strain = zeros(6,1);
+                        cur_node = Ve(m,:)*sqrt(3);
+                        for n = 1:8
+                            cur_sample = Ve(n,:);
+                            node_strain = node_strain + 1/8*(1+cur_node(1)*cur_sample(1))*...
+                                (1+cur_node(2)*cur_sample(2))*(1+cur_node(3)*cur_sample(3))*sample_points_strain(((n-1)*6+1):n*6);
+                        end
+                        node_stress = C*node_strain;
+                        vm = [vm
+                              vonmises(node_stress)];
+                    end
+
+                    VM(Hexi,:) = VM(Hexi,:)+vm;
+
+                end
+            end
+        end
+    end
 
 
 end

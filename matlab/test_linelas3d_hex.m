@@ -11,15 +11,21 @@ set_project_paths();
 
 load = [0; -9.8; 0];
 
-[U_interp,strain_interp,stress_interp,VM_interp] = linelas3d_hexahedron(W,load,r,DV,V,T);
+[VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,T);
 
+ori = DV(1,:);
 
-for i = 1:size(VM_interp,1)
-    if VM_interp(i) > 0.75*max(VM_interp)
-        VM_interp(i) = 0.75*max(VM_interp);
-    end
-end
+% for i = 1:size(Q,1)
+%     for j = 1:4
+%         idx = floor((DV(Q(i,j),:)-ori)./r)+1;
+%         idx = index_ijk_to_p(idx);
+%         if idx > size(VM)
+%             disp("problem here");
+%         end
+%     end
+% end
 
-options.face_vertex_color = VM_interp;
-plot_mesh(V,F,options);
-colormap('jet');
+% 
+% options.face_vertex_color = VM;
+% plot_mesh(V,F,options);
+% colormap('jet');
