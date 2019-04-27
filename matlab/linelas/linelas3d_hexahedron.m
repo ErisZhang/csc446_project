@@ -74,17 +74,24 @@ function [U_interp,strain,stress,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV
 
     % gaussian quadrature
     Ke = zeros(24,24);
-    weights = [(322-13*sqrt(70))/900 (322+13*sqrt(70))/900 128/225 ...
-        (322+13*sqrt(70))/900 (322-13*sqrt(70))/900];
-    points = [-sqrt(5+2*sqrt(10/7))/3 -sqrt(5-2*sqrt(10/7))/3 0 ...
-        sqrt(5-2*sqrt(10/7))/3 sqrt(5+2*sqrt(10/7))/3];
+    % weights = [(322-13*sqrt(70))/900 (322+13*sqrt(70))/900 128/225 ...
+    %     (322+13*sqrt(70))/900 (322-13*sqrt(70))/900];
+    % points = [-sqrt(5+2*sqrt(10/7))/3 -sqrt(5-2*sqrt(10/7))/3 0 ...
+    %     sqrt(5-2*sqrt(10/7))/3 sqrt(5+2*sqrt(10/7))/3];
+    points = [-1/sqrt(3),1/sqrt(3)];
     
-    N = 5; % number of points for quadrature
+    sample_points_B = [];
+    N = 2; % number of points for quadrature
     for i = 1:N
         for j = 1:N
             for k = 1:N
-                w = weights(i)*weights(j)*weights(k);
-                Ke = Ke + w.*f_integrand(C,Ve,points(i),points(j),points(k));
+                % w = weights(i)*weights(j)*weights(k);
+                % Ke = Ke + w.*f_integrand(C,Ve,points(i),points(j),points(k));
+                w = 1;
+                [integrand_value,B] = f_integrand(C,Ve,points(i),points(j),points(k));
+                sample_points_B = [sample_points_B
+                                    B];
+                Ke = Ke + w.*integrand_value;
             end
         end
     end
@@ -98,7 +105,7 @@ function [U_interp,strain,stress,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV
         for j = 1:size(W,2)
             for k = 1:size(W,3)
                 if W(i,j,k) == 1
-                    Hexi = get_hex_index(P,i,j,k);
+                    Hexi = get_hex_index(P,Ve,i,j,k);
                     ij2p(1:3:end) = 3*Hexi-2;
                     ij2p(2:3:end) = 3*Hexi-1;
                     ij2p(3:3:end) = 3*Hexi;
@@ -123,31 +130,55 @@ function [U_interp,strain,stress,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV
     u = u.*len.*len./4;
 
     [U_interp,strain,stress,VM] = compute_fields_hex(P,DV,V,Tet,C,u,r);
+    %%%%%%%%%%%%%%%%%%%%%% compute stress, strain and von mises %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    % ij2p = zeros(24,1);
+    % % assembly procedure
+    % for i = 1:size(W,1)
+    %     for j = 1:size(W,2)
+    %         for k = 1:size(W,3)
+    %             if W(i,j,k) == 1
+    %                 Hexi = get_hex_index(P,Ve,i,j,k);
+    %                 ij2p(1:3:end) = 3*Hexi-2;
+    %                 ij2p(2:3:end) = 3*Hexi-1;
+    %                 ij2p(3:3:end) = 3*Hexi;
+
+    %                 u_hex = u(ij2p);
+    %                 sample_points_strain = sample_points_B*u_hex;
+
+    %             end
+    %         end
+    %     end
+    % end
 
 
 end
 
 
-function Hexi = get_hex_index(P,i,j,k)
+function Hexi = get_hex_index(P,Ve,i,j,k)
     Hexi = zeros(8,1);
-    for a = 0:1
-        for b = 0:1
-            for c = 0:1
-                idx = 4*a+2*b+c+1;
-                Hexi(idx) = P(i+a,j+b,k+c);
-            end
-        end
-    end
+
+    %% hard code here
+    Hexi(1) = P(i,j,k+1);
+    Hexi(2) = P(i,j,k);
+    Hexi(3) = P(i,j+1,k);
+    Hexi(4) = P(i,j+1,k+1);
+    Hexi(5) = P(i+1,j,k+1);
+    Hexi(6) = P(i+1,j,k);
+    Hexi(7) = P(i+1,j+1,k);
+    Hexi(8) = P(i+1,j+1,k+1);
+
 end
 
 
-function value = f_integrand(C,Ve,i,j,k)
+function [B,J] = compute_B(Ve,i,j,k)
+
+    B = [];
 
     J = [-1/8*(1-j)*(1-k)  1/8*(1-j)*(1-k)  1/8*(1+j)*(1-k) -1/8*(1+j)*(1-k) -1/8*(1-j)*(1+k)  1/8*(1-j)*(1+k) 1/8*(1+j)*(1+k) -1/8*(1+j)*(1+k)
          -1/8*(1-i)*(1-k) -1/8*(1+i)*(1-k)  1/8*(1+i)*(1-k)  1/8*(1-i)*(1-k) -1/8*(1-i)*(1+k) -1/8*(1+i)*(1+k) 1/8*(1+i)*(1+k)  1/8*(1-i)*(1+k)
          -1/8*(1-i)*(1-j) -1/8*(1+i)*(1-j) -1/8*(1+i)*(1+j) -1/8*(1-i)*(1+j)  1/8*(1-i)*(1-j)  1/8*(1+i)*(1-j) 1/8*(1+i)*(1+j)  1/8*(1-i)*(1+j)]*Ve;  
     
-    B = [];
     for m = 1:8
         coeff = Ve(m,:);
         
@@ -165,6 +196,14 @@ function value = f_integrand(C,Ve,i,j,k)
 
     end
 
-    value = B'*C*B*det(J);
+end
+
+
+
+function [integrand_value,B] = f_integrand(C,Ve,i,j,k)
+
+    [B,J] = compute_B(Ve,i,j,k);
+
+    integrand_value = B'*C*B*det(J);
 
 end
