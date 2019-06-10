@@ -136,3 +136,13 @@ for j = 1:size(V,1)
         (se(3)-se(1))^2 + 6*(se(4)^2+se(5)^2+se(6)^2));
 end
 ```
+
+U large and challenge to learn
+PCA v.s. Autoencoder
+L-BFGS
+linear model reduction: nonlinear?
+
+Diffusion curves
+
+Diffusion of colors
+smooth gradient = minimize surface curvature

@@ -13,7 +13,7 @@
 %       U           #Vx3 list of vertex displacements
 %       strain      #Vx6 stress field
 %       stress      #Vx6 strain field     
-function [VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,Tet,varargin)
+function [VM_interp,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,Tet,varargin)
     assert(size(size(W),2) == 3,'Only 3D meshes are supported');
 
     young = 1.45e5;
@@ -169,6 +169,9 @@ function [VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,Tet,varargin)
             end
         end
     end
+
+    %% interpolate the von mises field back to tet
+    [VM_interp] = interpolate_hex_to_tet(P,VM,DV,r,V)
 
 
 end

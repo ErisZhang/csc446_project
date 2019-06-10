@@ -4,7 +4,8 @@ function [U_interp] = interpolate_hex_to_tet(P,U,DV,r,V)
 % Syntax: output = myFun(input)
 %
 % Long description
-    U_interp = zeros(size(V));
+    U_interp = zeros(size(V,1),1);
+
     ori = DV(1,:);
     idx = floor((V-ori)./r)+1;
     
@@ -16,7 +17,7 @@ function [U_interp] = interpolate_hex_to_tet(P,U,DV,r,V)
         b = local_coor(2);
         c = local_coor(3);
 
-        u_interp = [0 0 0];
+        u_interp = [0];
         
         for i = 0:2:2
             for j = 0:2:2
