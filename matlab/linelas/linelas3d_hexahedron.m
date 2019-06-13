@@ -18,7 +18,7 @@ function [VM_interp,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,Tet,vararg
 
     young = 1.45e5;
     mu = 0.45;
-    linearsolver = false;
+    linearsolver = true;
     saveon = {};
     data = struct('xks',[],'rks',[]);
 
@@ -99,6 +99,7 @@ function [VM_interp,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,Tet,vararg
     hex_vol = 2*2*2;
     fe = repmat(load,8,1)*hex_vol/8;
 
+    tic;
     ij2p = zeros(24,1);
     % assembly procedure
     for i = 1:size(W,1)
@@ -116,6 +117,7 @@ function [VM_interp,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,Tet,vararg
             end
         end
     end
+    toc;
 
     [K,f] = dirichlet_zero_boundary(K,f,b);
 
@@ -171,8 +173,7 @@ function [VM_interp,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,Tet,vararg
     end
 
     %% interpolate the von mises field back to tet
-    [VM_interp] = interpolate_hex_to_tet(P,VM,DV,r,V)
-
+    [VM_interp] = interpolate_hex_to_tet(P,VM,DV,r,V);
 
 end
 

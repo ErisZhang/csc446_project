@@ -5,11 +5,18 @@ set_project_paths();
 
 [V,T,F] = readMESH('../data/bb-bunny.mesh');
 
-[W,BC,DV,Q,r] = voxelize(V,F,30);
+[W,BC,DV,Q,r] = voxelize(V,F,16);
+
+[P1,dof,b] = index_ijk_to_p(W);
 
 load = [0; -9.8; 0];
 
 [VM_interp,VM,P,C,data] = linelas3d_hexahedron(W,load,r,DV,V,T);
+
+options.face_vertex_color = log(VM_interp);
+plot_mesh(V,F,options);
+colormap('jet');
+
 
 % ori = DV(1,:);
 % all_V = zeros(size(VM,1),3);
@@ -53,8 +60,3 @@ load = [0; -9.8; 0];
 %         VM_interp(i) = 0.25*max(VM_interp);
 %     end
 % end
-
-
-options.face_vertex_color = log(VM_interp);
-plot_mesh(V,F,options);
-colormap('jet');

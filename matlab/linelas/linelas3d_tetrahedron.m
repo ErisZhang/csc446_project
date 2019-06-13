@@ -27,7 +27,7 @@ function [U,K,f,strain,stress,VM,Bs,C,data] = linelas3d_tetrahedron(V,Tet,b,load
 
     young = 1.45e5;
     mu = 0.45;
-    linearsolver = false;
+    linearsolver = true;
     saveon = {};
     data = struct('xks',[],'rks',[]);
 
@@ -75,7 +75,6 @@ function [U,K,f,strain,stress,VM,Bs,C,data] = linelas3d_tetrahedron(V,Tet,b,load
     Vs = zeros(size(Tet,1),1);  % tet vols 
 
     tic;
-
     for i = 1:size(Tet,1)
 
         if mod(i,1000) == 0
