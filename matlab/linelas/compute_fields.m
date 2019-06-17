@@ -17,3 +17,4 @@ function [U,strain,stress,vm,VM] = compute_fields(V,Tet,C,Bs,u)
         VM(Tet(i,:),1) = VM(Tet(i,:),1) + vm(i)./N(Tet(i,:),1);
     end
 end
+

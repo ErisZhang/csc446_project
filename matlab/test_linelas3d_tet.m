@@ -2,8 +2,7 @@ clear all;
 format shortG;
 set_project_paths();
 
-[V,T,F] = readMESH('../data/bb-bunny.mesh');
-
+[V,T,F] = readMESH('../data/archbridge.mesh');
 
 b = boundary_vertices(V,2,0.005);
 b = reshape(3*repmat(b,3,1) - [2 1 0]',[],1); % vertex->node-wise

@@ -24,9 +24,8 @@
 %               rks  from linear solver
 function [U,K,f,strain,stress,VM,Bs,C,data] = linelas3d_tetrahedron(V,Tet,b,load,varargin)
     assert(size(V,2) == 3,'Only 3D meshes are supported');
-
-    young = 1.45e5;
-    mu = 0.45;
+    young = 1.45e5; % young's modulus
+    mu = 0.45; % poisson ratio
     linearsolver = true;
     saveon = {};
     data = struct('xks',[],'rks',[]);

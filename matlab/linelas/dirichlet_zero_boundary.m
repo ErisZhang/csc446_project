@@ -24,4 +24,3 @@ function [Kz,fz] = dirichlet_zero_boundary(K,f,b)
         fz(b(i)) = 0;
     end
 end
-    

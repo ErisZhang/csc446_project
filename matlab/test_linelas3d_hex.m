@@ -3,9 +3,9 @@ format shortG;
 warning('off','all');
 set_project_paths();
 
-[V,T,F] = readMESH('../data/bb-bunny.mesh');
+[V,T,F] = readMESH('../data/archbridge.mesh');
 
-[W,BC,DV,Q,r] = voxelize(V,F,16);
+[W,BC,DV,Q,r] = voxelize(V,F,20);
 
 [P1,dof,b] = index_ijk_to_p(W);
 
