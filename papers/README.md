@@ -11,9 +11,6 @@
 ## iterative methods 
 
 
-
-
-
 ## Gradient estimation on discrete mesh 
 
 + [2018_gradient_field_estimation_on_triangle_meshes](2018_gradient_field_estimation_on_triangle_meshes.pdf)
@@ -193,6 +190,11 @@
     + a thesis that is quite well written
     + matrix-free algorithm on voxels ! exactly what we wanted ... base our project on this ...
 
+
+## Multigrids
+
+
++ [a_multigrid_tutorial_2ed](a_multigrid_tutorial_2ed.pdf)
 
 
 ## graphics paper based on linear elasticity
